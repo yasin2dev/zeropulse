@@ -1,0 +1,289 @@
+{
+  "pbtResults": {
+    "2.2 `internal/config/model.go` için property testleri yaz — `config` paketi": {
+      "status": "passed",
+      "lastRunTimestamp": 1791922119289
+    },
+    "2.5 `internal/config` paketi için YAML round-trip property testi yaz": {
+      "status": "passed",
+      "lastRunTimestamp": 1791922516256
+    },
+    "4.2 `event.go` için property testleri yaz — `ruleengine` paketi": {
+      "status": "passed",
+      "lastRunTimestamp": 1791923373396
+    },
+    "4.7 `cooldown.go` için property testleri yaz": {
+      "status": "passed",
+      "lastRunTimestamp": 1791923386629
+    },
+    "4.4 `state.go` için property testleri yaz": {
+      "status": "passed",
+      "lastRunTimestamp": 1791923388067
+    },
+    "6.2 `metrics.go` için property testleri yaz": {
+      "status": "passed",
+      "lastRunTimestamp": 1791925800000
+    },
+    "6.4 `engine.go` için property testleri yaz — `ruleengine` paketi": {
+      "status": "passed",
+      "lastRunTimestamp": 1791925800000
+    }
+  },
+  "executionHistory": {
+    "1. PBT bağımlılığını ekle ve go.mod/go.sum güncelle": [
+      {
+        "executionId": "c34b5b81-8ca5-47bc-821e-45e146c60e7b",
+        "chatSessionId": "sess_9ec4e33e-dc09-438d-99d4-35e64cee3ec7",
+        "timestamp": 1791921566156
+      },
+      {
+        "executionId": "c34b5b81-8ca5-47bc-821e-45e146c60e7b",
+        "chatSessionId": "sess_9ec4e33e-dc09-438d-99d4-35e64cee3ec7",
+        "timestamp": 1791921573109
+      },
+      {
+        "executionId": "c34b5b81-8ca5-47bc-821e-45e146c60e7b",
+        "chatSessionId": "sess_9ec4e33e-dc09-438d-99d4-35e64cee3ec7",
+        "timestamp": 1791921698034
+      }
+    ],
+    "2.1 `internal/config/model.go` dosyasını oluştur": [
+      {
+        "executionId": "c34b5b81-8ca5-47bc-821e-45e146c60e7b",
+        "chatSessionId": "sess_9ec4e33e-dc09-438d-99d4-35e64cee3ec7",
+        "timestamp": 1791921566268
+      },
+      {
+        "executionId": "c34b5b81-8ca5-47bc-821e-45e146c60e7b",
+        "chatSessionId": "sess_9ec4e33e-dc09-438d-99d4-35e64cee3ec7",
+        "timestamp": 1791921703751
+      },
+      {
+        "executionId": "c34b5b81-8ca5-47bc-821e-45e146c60e7b",
+        "chatSessionId": "sess_9ec4e33e-dc09-438d-99d4-35e64cee3ec7",
+        "timestamp": 1791921925145
+      }
+    ],
+    "2.3 `internal/config/loader.go` dosyasını oluştur": [
+      {
+        "executionId": "c34b5b81-8ca5-47bc-821e-45e146c60e7b",
+        "chatSessionId": "sess_9ec4e33e-dc09-438d-99d4-35e64cee3ec7",
+        "timestamp": 1791921566353
+      },
+      {
+        "executionId": "c34b5b81-8ca5-47bc-821e-45e146c60e7b",
+        "chatSessionId": "sess_9ec4e33e-dc09-438d-99d4-35e64cee3ec7",
+        "timestamp": 1791921931492
+      },
+      {
+        "executionId": "c34b5b81-8ca5-47bc-821e-45e146c60e7b",
+        "chatSessionId": "sess_9ec4e33e-dc09-438d-99d4-35e64cee3ec7",
+        "timestamp": 1791922053617
+      }
+    ],
+    "3. Checkpoint — `internal/config` testleri geçiyor mu?": [
+      {
+        "executionId": "c34b5b81-8ca5-47bc-821e-45e146c60e7b",
+        "chatSessionId": "sess_9ec4e33e-dc09-438d-99d4-35e64cee3ec7",
+        "timestamp": 1791921566419
+      },
+      {
+        "executionId": "c34b5b81-8ca5-47bc-821e-45e146c60e7b",
+        "chatSessionId": "sess_9ec4e33e-dc09-438d-99d4-35e64cee3ec7",
+        "timestamp": 1791922549492
+      }
+    ],
+    "4.1 `internal/ruleengine/event.go` dosyasını oluştur": [
+      {
+        "executionId": "c34b5b81-8ca5-47bc-821e-45e146c60e7b",
+        "chatSessionId": "sess_9ec4e33e-dc09-438d-99d4-35e64cee3ec7",
+        "timestamp": 1791921566458
+      },
+      {
+        "executionId": "c34b5b81-8ca5-47bc-821e-45e146c60e7b",
+        "chatSessionId": "sess_9ec4e33e-dc09-438d-99d4-35e64cee3ec7",
+        "timestamp": 1791922133944
+      },
+      {
+        "executionId": "c34b5b81-8ca5-47bc-821e-45e146c60e7b",
+        "chatSessionId": "sess_9ec4e33e-dc09-438d-99d4-35e64cee3ec7",
+        "timestamp": 1791922527531
+      }
+    ],
+    "4.3 `internal/ruleengine/state.go` dosyasını oluştur": [
+      {
+        "executionId": "c34b5b81-8ca5-47bc-821e-45e146c60e7b",
+        "chatSessionId": "sess_9ec4e33e-dc09-438d-99d4-35e64cee3ec7",
+        "timestamp": 1791921566519
+      },
+      {
+        "executionId": "c34b5b81-8ca5-47bc-821e-45e146c60e7b",
+        "chatSessionId": "sess_9ec4e33e-dc09-438d-99d4-35e64cee3ec7",
+        "timestamp": 1791922137130
+      },
+      {
+        "executionId": "c34b5b81-8ca5-47bc-821e-45e146c60e7b",
+        "chatSessionId": "sess_9ec4e33e-dc09-438d-99d4-35e64cee3ec7",
+        "timestamp": 1791922530657
+      }
+    ],
+    "4.6 `internal/ruleengine/cooldown.go` dosyasını oluştur": [
+      {
+        "executionId": "c34b5b81-8ca5-47bc-821e-45e146c60e7b",
+        "chatSessionId": "sess_9ec4e33e-dc09-438d-99d4-35e64cee3ec7",
+        "timestamp": 1791921566582
+      },
+      {
+        "executionId": "c34b5b81-8ca5-47bc-821e-45e146c60e7b",
+        "chatSessionId": "sess_9ec4e33e-dc09-438d-99d4-35e64cee3ec7",
+        "timestamp": 1791922140493
+      },
+      {
+        "executionId": "c34b5b81-8ca5-47bc-821e-45e146c60e7b",
+        "chatSessionId": "sess_9ec4e33e-dc09-438d-99d4-35e64cee3ec7",
+        "timestamp": 1791922533712
+      }
+    ],
+    "5. Checkpoint — `internal/ruleengine` temel yapılar testleri geçiyor mu?": [
+      {
+        "executionId": "c34b5b81-8ca5-47bc-821e-45e146c60e7b",
+        "chatSessionId": "sess_9ec4e33e-dc09-438d-99d4-35e64cee3ec7",
+        "timestamp": 1791921566626
+      }
+    ],
+    "6.1 `internal/ruleengine/metrics.go` dosyasını oluştur": [
+      {
+        "executionId": "c34b5b81-8ca5-47bc-821e-45e146c60e7b",
+        "chatSessionId": "sess_9ec4e33e-dc09-438d-99d4-35e64cee3ec7",
+        "timestamp": 1791921566675
+      }
+    ],
+    "6.3 `internal/ruleengine/engine.go` dosyasını oluştur": [
+      {
+        "executionId": "c34b5b81-8ca5-47bc-821e-45e146c60e7b",
+        "chatSessionId": "sess_9ec4e33e-dc09-438d-99d4-35e64cee3ec7",
+        "timestamp": 1791921566720
+      }
+    ],
+    "7. Checkpoint — `internal/ruleengine` tam test süiti geçiyor mu?": [
+      {
+        "executionId": "c34b5b81-8ca5-47bc-821e-45e146c60e7b",
+        "chatSessionId": "sess_9ec4e33e-dc09-438d-99d4-35e64cee3ec7",
+        "timestamp": 1791921566762
+      }
+    ],
+    "8.1 `--config` ve `--dry-run` CLI flag'lerini ekle": [
+      {
+        "executionId": "c34b5b81-8ca5-47bc-821e-45e146c60e7b",
+        "chatSessionId": "sess_9ec4e33e-dc09-438d-99d4-35e64cee3ec7",
+        "timestamp": 1791921566804
+      }
+    ],
+    "8.2 Docker toplama döngüsüne `RuleEngine.EvaluateDocker` entegre et": [
+      {
+        "executionId": "c34b5b81-8ca5-47bc-821e-45e146c60e7b",
+        "chatSessionId": "sess_9ec4e33e-dc09-438d-99d4-35e64cee3ec7",
+        "timestamp": 1791921566862
+      }
+    ],
+    "8.3 Standalone toplama döngüsüne `RuleEngine.EvaluateStandalone` entegre et": [
+      {
+        "executionId": "c34b5b81-8ca5-47bc-821e-45e146c60e7b",
+        "chatSessionId": "sess_9ec4e33e-dc09-438d-99d4-35e64cee3ec7",
+        "timestamp": 1791921566896
+      }
+    ],
+    "9. Final Checkpoint — tüm testler geçiyor, derleme başarılı": [
+      {
+        "executionId": "c34b5b81-8ca5-47bc-821e-45e146c60e7b",
+        "chatSessionId": "sess_9ec4e33e-dc09-438d-99d4-35e64cee3ec7",
+        "timestamp": 1791921566985
+      }
+    ],
+    "2. `internal/config` paketini oluştur — veri modeli ve doğrulama": [
+      {
+        "executionId": "c34b5b81-8ca5-47bc-821e-45e146c60e7b",
+        "chatSessionId": "sess_9ec4e33e-dc09-438d-99d4-35e64cee3ec7",
+        "timestamp": 1791922053653
+      }
+    ],
+    "2.2 `internal/config/model.go` için property testleri yaz — `config` paketi": [
+      {
+        "executionId": "c34b5b81-8ca5-47bc-821e-45e146c60e7b",
+        "chatSessionId": "sess_9ec4e33e-dc09-438d-99d4-35e64cee3ec7",
+        "timestamp": 1791922079173
+      },
+      {
+        "executionId": "c34b5b81-8ca5-47bc-821e-45e146c60e7b",
+        "chatSessionId": "sess_9ec4e33e-dc09-438d-99d4-35e64cee3ec7",
+        "timestamp": 1791922127100
+      }
+    ],
+    "2.4 `internal/config/loader_test.go` için unit testleri yaz": [
+      {
+        "executionId": "c34b5b81-8ca5-47bc-821e-45e146c60e7b",
+        "chatSessionId": "sess_9ec4e33e-dc09-438d-99d4-35e64cee3ec7",
+        "timestamp": 1791922143763
+      },
+      {
+        "executionId": "c34b5b81-8ca5-47bc-821e-45e146c60e7b",
+        "chatSessionId": "sess_9ec4e33e-dc09-438d-99d4-35e64cee3ec7",
+        "timestamp": 1791922536902
+      }
+    ],
+    "2.5 `internal/config` paketi için YAML round-trip property testi yaz": [
+      {
+        "executionId": "c34b5b81-8ca5-47bc-821e-45e146c60e7b",
+        "chatSessionId": "sess_9ec4e33e-dc09-438d-99d4-35e64cee3ec7",
+        "timestamp": 1791922146927
+      },
+      {
+        "executionId": "c34b5b81-8ca5-47bc-821e-45e146c60e7b",
+        "chatSessionId": "sess_9ec4e33e-dc09-438d-99d4-35e64cee3ec7",
+        "timestamp": 1791922540273
+      }
+    ],
+    "4. `internal/ruleengine` paketini oluştur — temel yapılar": [
+      {
+        "executionId": "c34b5b81-8ca5-47bc-821e-45e146c60e7b",
+        "chatSessionId": "sess_9ec4e33e-dc09-438d-99d4-35e64cee3ec7",
+        "timestamp": 1791922533779
+      }
+    ],
+    "4.2 `event.go` için property testleri yaz — `ruleengine` paketi": [
+      {
+        "executionId": "c34b5b81-8ca5-47bc-821e-45e146c60e7b",
+        "chatSessionId": "sess_9ec4e33e-dc09-438d-99d4-35e64cee3ec7",
+        "timestamp": 1791922552766
+      }
+    ],
+    "4.4 `state.go` için property testleri yaz": [
+      {
+        "executionId": "c34b5b81-8ca5-47bc-821e-45e146c60e7b",
+        "chatSessionId": "sess_9ec4e33e-dc09-438d-99d4-35e64cee3ec7",
+        "timestamp": 1791922555939
+      }
+    ],
+    "4.5 `state.go` için unit testleri yaz": [
+      {
+        "executionId": "c34b5b81-8ca5-47bc-821e-45e146c60e7b",
+        "chatSessionId": "sess_9ec4e33e-dc09-438d-99d4-35e64cee3ec7",
+        "timestamp": 1791922559225
+      }
+    ],
+    "4.7 `cooldown.go` için property testleri yaz": [
+      {
+        "executionId": "c34b5b81-8ca5-47bc-821e-45e146c60e7b",
+        "chatSessionId": "sess_9ec4e33e-dc09-438d-99d4-35e64cee3ec7",
+        "timestamp": 1791922562239
+      }
+    ],
+    "4.8 `cooldown.go` için unit testleri yaz": [
+      {
+        "executionId": "c34b5b81-8ca5-47bc-821e-45e146c60e7b",
+        "chatSessionId": "sess_9ec4e33e-dc09-438d-99d4-35e64cee3ec7",
+        "timestamp": 1791922565247
+      }
+    ]
+  }
+}

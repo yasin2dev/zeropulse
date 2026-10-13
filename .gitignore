@@ -1,0 +1,14 @@
+# Binary files
+/bin/
+zeropulse
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Environments / OS
+.DS_Store
+*.swp

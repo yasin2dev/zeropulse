@@ -1,0 +1,115 @@
+# 2026/10/13 23:15:01.659666 [TestConfigRoundTripYAML] [rapid] draw num_rules: 3
+# 2026/10/13 23:15:01.659672 [TestConfigRoundTripYAML] [rapid] draw name: "A"
+# 2026/10/13 23:15:01.659674 [TestConfigRoundTripYAML] [rapid] draw metric_type: "CPU_PERCENT"
+# 2026/10/13 23:15:01.659682 [TestConfigRoundTripYAML] [rapid] draw operator: "GT"
+# 2026/10/13 23:15:01.659684 [TestConfigRoundTripYAML] [rapid] draw threshold: 1
+# 2026/10/13 23:15:01.659685 [TestConfigRoundTripYAML] [rapid] draw consecutive_periods: 1
+# 2026/10/13 23:15:01.659685 [TestConfigRoundTripYAML] [rapid] draw action: "RESTART"
+# 2026/10/13 23:15:01.659687 [TestConfigRoundTripYAML] [rapid] draw cooldown_seconds: 0
+# 2026/10/13 23:15:01.659688 [TestConfigRoundTripYAML] [rapid] draw container_filter: ""
+# 2026/10/13 23:15:01.659689 [TestConfigRoundTripYAML] [rapid] draw name: "A"
+# 2026/10/13 23:15:01.659690 [TestConfigRoundTripYAML] [rapid] draw metric_type: "CPU_PERCENT"
+# 2026/10/13 23:15:01.659691 [TestConfigRoundTripYAML] [rapid] draw operator: "GT"
+# 2026/10/13 23:15:01.659692 [TestConfigRoundTripYAML] [rapid] draw threshold: 1
+# 2026/10/13 23:15:01.659693 [TestConfigRoundTripYAML] [rapid] draw consecutive_periods: 1
+# 2026/10/13 23:15:01.659693 [TestConfigRoundTripYAML] [rapid] draw action: "RESTART"
+# 2026/10/13 23:15:01.659694 [TestConfigRoundTripYAML] [rapid] draw cooldown_seconds: 0
+# 2026/10/13 23:15:01.659695 [TestConfigRoundTripYAML] [rapid] draw container_filter: ""
+# 2026/10/13 23:15:01.659696 [TestConfigRoundTripYAML] [rapid] draw name: "A"
+# 2026/10/13 23:15:01.659697 [TestConfigRoundTripYAML] [rapid] draw metric_type: "CPU_PERCENT"
+# 2026/10/13 23:15:01.659698 [TestConfigRoundTripYAML] [rapid] draw operator: "GT"
+# 2026/10/13 23:15:01.659699 [TestConfigRoundTripYAML] [rapid] draw threshold: 1
+# 2026/10/13 23:15:01.659700 [TestConfigRoundTripYAML] [rapid] draw consecutive_periods: 1
+# 2026/10/13 23:15:01.659700 [TestConfigRoundTripYAML] [rapid] draw action: "RESTART"
+# 2026/10/13 23:15:01.659701 [TestConfigRoundTripYAML] [rapid] draw cooldown_seconds: 0
+# 2026/10/13 23:15:01.659703 [TestConfigRoundTripYAML] [rapid] draw container_filter: " A\n"
+# 2026/10/13 23:15:01.659794 [TestConfigRoundTripYAML] yaml.Unmarshal failed: yaml: line 17: did not find expected key
+# 
+v0.4.8#2692567308649711275
+0x0
+0x38e38e38e38e4
+0x2
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x5555555555555
+0x0
+0xc05c654ab866b
+0x14
+0x5555555555555
+0x0
+0x0
+0x0
+0x5555555555555
+0x25
+0x9867f1f40f739
+0xa
+0x0
