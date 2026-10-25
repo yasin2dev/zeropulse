@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"zeropulse-agent/internal/collector"
+	"zeropulse-agent/internal/engine"
 	"zeropulse-agent/internal/ruleengine"
 )
 
@@ -142,3 +143,31 @@ rules:
 		t.Fatalf("expected Mode='remediation', got %q", evt.Mode)
 	}
 }
+
+func TestStateWindowingEngineAndLogAnomalies(t *testing.T) {
+	coreEngine := engine.New(engine.Config{
+		CPUThreshold: 0.5,
+		MemThreshold: 85.0,
+	})
+
+	snap := collector.DockerMetricsSnapshot{
+		Containers: []collector.ContainerMetrics{
+			{
+				ContainerID: "c-test-1",
+				Name:        "worker-api",
+				CPUPercent:  1.2,
+				MemPercent:  90.0,
+			},
+		},
+	}
+
+	var buf bytes.Buffer
+	anomalies := coreEngine.Evaluate(snap)
+	logAnomalies(&buf, nil, anomalies)
+
+	output := buf.String()
+	if !strings.Contains(output, "MEMORY_CRITICAL") || !strings.Contains(output, "RESTART_SUGGESTED") {
+		t.Fatalf("expected structured ALERT JSON with MEMORY_CRITICAL and RESTART_SUGGESTED, got:\n%s", output)
+	}
+}
+
