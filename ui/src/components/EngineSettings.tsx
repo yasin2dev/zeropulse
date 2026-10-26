@@ -61,25 +61,25 @@ export const EngineSettings: React.FC<EngineSettingsProps> = ({
               <div className="setting-card-title">
                 <FontAwesomeIcon
                   icon={dryRun ? faShieldHalved : faBolt}
-                  style={{ color: dryRun ? 'var(--status-warn)' : 'var(--crimson)' }}
+                  style={{ color: dryRun ? 'var(--status-warn-fg)' : 'var(--accent)' }}
                 />
                 <span>Otomatik İyileştirme (Self-Healing) Modu</span>
               </div>
-              <span className={`badge ${dryRun ? 'warning' : 'critical'}`}>
-                {dryRun ? 'GÖZLEMLEME (DRY-RUN)' : 'AKTİF REMEDIATION'}
+              <span className={`status-pill sm ${dryRun ? 'status-warn' : 'status-danger'}`}>
+                {dryRun ? 'Gözlem Modu (Dry-Run)' : 'Aktif Remediation'}
               </span>
             </div>
 
             <p className="setting-description">
               {dryRun
                 ? 'Sistem güvenli gözlem modundadır. Eşik aşımlarında yalnızca yapılandırılmış AnomalyEvent logu üretilir, Docker API üzerinden yeniden başlatma komutu çalıştırılmaz.'
-                : 'DİKKAT: Aktif remediation devrededir. Eşiği 3 ardışık periyot aşan konteynerler Docker soketi üzerinden anında otomatik olarak YENİDEN BAŞLATILIR.'}
+                : 'Dikkat: Aktif remediation devrededir. Eşiği 3 ardışık periyot aşan konteynerler Docker soketi üzerinden anında otomatik olarak yeniden başlatılır.'}
             </p>
 
             <div className="setting-action-row">
               <button
                 type="button"
-                className={dryRun ? 'btn-danger' : 'btn-secondary'}
+                className={dryRun ? 'btn-primary' : 'btn-secondary'}
                 onClick={handleToggleClick}
                 disabled={actionLoading}
               >
@@ -98,7 +98,7 @@ export const EngineSettings: React.FC<EngineSettingsProps> = ({
                 <FontAwesomeIcon icon={faMicrochip} />
                 <span>İşlemci (CPU) Doygunluk Eşiği</span>
               </div>
-              <span className="badge ok">%80.0</span>
+              <span className="status-pill sm status-ok">%80.0</span>
             </div>
             <p className="setting-description">
               Konteyner CPU kullanım oranı ardışık 3 periyot boyunca %80.0'in üzerinde kaldığında veya CFS kotaları tıkandığında (throttled periods) tetiklenir.
@@ -115,7 +115,7 @@ export const EngineSettings: React.FC<EngineSettingsProps> = ({
                 <FontAwesomeIcon icon={faMemory} />
                 <span>Kritik Bellek (RAM) Eşiği</span>
               </div>
-              <span className="badge ok">%85.0</span>
+              <span className="status-pill sm status-ok">%85.0</span>
             </div>
             <p className="setting-description">
               Bellek tahsis sınırı %85.0 eşiğine ulaştığında OOM (Out-of-Memory) çökmesini engellemek için anında alarm üretilir.
@@ -132,7 +132,7 @@ export const EngineSettings: React.FC<EngineSettingsProps> = ({
                 <FontAwesomeIcon icon={faClock} />
                 <span>Flapping Koruması (Cooldown Süresi)</span>
               </div>
-              <span className="badge ok">60 Saniye</span>
+              <span className="status-pill sm status-ok">60 Saniye</span>
             </div>
             <p className="setting-description">
               Bir konteyner için iyileştirme aksiyonu tetiklendikten sonra aynı konteyner üzerinde 60 saniye boyunca yeni alarm ve aksiyon bastırılır.

@@ -41,7 +41,7 @@ export const AuditLog: React.FC<AuditLogProps> = ({ logs }) => {
       <div className="section-header">
         <h2 className="section-title">
           <FontAwesomeIcon icon={faListCheck} style={{ opacity: 0.8 }} />
-          <span>Olay ve Kural Denetim Akışı (Audit & Healing Log)</span>
+          <span>Olay & İyileştirme Günlüğü</span>
           <span className="section-count">({logs.length} Kayıt)</span>
         </h2>
 
@@ -56,51 +56,47 @@ export const AuditLog: React.FC<AuditLogProps> = ({ logs }) => {
             className={`filter-btn ${filter === 'actions' ? 'active' : ''}`}
             onClick={() => setFilter('actions')}
           >
-            Aksiyonlar
+            İyileştirmeler
           </button>
           <button
             className={`filter-btn ${filter === 'anomalies' ? 'active' : ''}`}
             onClick={() => setFilter('anomalies')}
           >
-            Anomaliler & Hatalar
+            Anomaliler & Eşik Aşımları
           </button>
         </div>
       </div>
 
       <div className="audit-log-container">
         {filteredLogs.length === 0 ? (
-          <div className="empty-state">Henüz kaydedilmiş anomali veya iyileştirme olayı yok.</div>
+          <div className="empty-state">Henüz kaydedilmiş anomali veya iyileştirme olayı bulunmuyor.</div>
         ) : (
           filteredLogs.map((log) => {
-            const timeStr = new Date(log.timestamp).toLocaleTimeString();
-            let tagColor = 'var(--text-secondary)';
-            let tagBg = 'var(--bg-card-hover)';
-            let tagBorder = 'var(--border-card)';
+            const timeStr = new Date(log.timestamp).toLocaleTimeString('tr-TR');
+            let tagColor = 'var(--text-muted)';
+            let tagBg = 'var(--surface-2)';
 
             if (log.status === 'ACTION_EXECUTED' || log.status === 'MANUAL_RESTART') {
-              tagColor = 'var(--status-ok)';
+              tagColor = 'var(--status-ok-fg)';
               tagBg = 'var(--status-ok-bg)';
-              tagBorder = 'var(--status-ok-border)';
             } else if (log.status === 'TRIGGERED') {
-              tagColor = 'var(--status-warn)';
+              tagColor = 'var(--status-warn-fg)';
               tagBg = 'var(--status-warn-bg)';
-              tagBorder = 'var(--status-warn-border)';
             } else if (log.status === 'FAILED' || log.status === 'REMEDIATION_FAILED') {
-              tagColor = 'var(--crimson)';
+              tagColor = 'var(--status-danger-fg)';
               tagBg = 'var(--status-danger-bg)';
-              tagBorder = 'var(--status-danger-border)';
             }
 
             return (
               <div key={log.id} className="audit-entry">
                 <div className="audit-left">
                   <span className="audit-time">
-                    <FontAwesomeIcon icon={faClock} style={{ fontSize: '0.65rem' }} />
+                    <FontAwesomeIcon icon={faClock} style={{ opacity: 0.6 }} />
                     <span>{timeStr}</span>
                   </span>
                   <span
                     className="audit-tag"
-                    style={{ color: tagColor, background: tagBg, border: `1px solid ${tagBorder}` }}
+                    style={{ color: tagColor, background: tagBg }}
                   >
                     {log.rule_name || log.action || log.status}
                   </span>
@@ -112,14 +108,14 @@ export const AuditLog: React.FC<AuditLogProps> = ({ logs }) => {
 
                 <div>
                   {log.dry_run ? (
-                    <span className="badge warning">
+                    <span className="status-pill sm status-warn">
                       <FontAwesomeIcon icon={faShieldHalved} />
-                      <span>DRY-RUN</span>
+                      <span>Gözlem (Dry-Run)</span>
                     </span>
                   ) : (
-                    <span className="badge critical">
+                    <span className="status-pill sm status-danger">
                       <FontAwesomeIcon icon={faBolt} />
-                      <span>REMEDIATION</span>
+                      <span>Self-Healing</span>
                     </span>
                   )}
                 </div>

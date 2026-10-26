@@ -63,8 +63,8 @@ export const Navbar: React.FC<NavbarProps> = ({
           <BrandLogo size={36} />
           <div className="brand-text-block">
             <div className="brand-title-row">
-              <span className="brand-name">ZEROPULSE</span>
-              <span className="brand-edition">APPLIANCE</span>
+              <span className="brand-name">Zeropulse</span>
+              <span className="brand-edition">Appliance</span>
             </div>
             <span className="brand-subline">Edge Telemetry & Self-Healing Gateway</span>
           </div>
@@ -74,21 +74,21 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div className="system-telemetry-strip">
           <div className="telemetry-pill">
             <FontAwesomeIcon icon={faServer} className="pill-icon" />
-            <span className="pill-key">DAEMON:</span>
-            <span className="pill-val">{mode === 'docker' ? 'DOCKER ENGINE' : 'HOST NATIVE'}</span>
+            <span className="pill-key">Daemon:</span>
+            <span className="pill-val">{mode === 'docker' ? 'Docker Engine' : 'Host Native'}</span>
           </div>
 
           <div className="telemetry-pill">
             <FontAwesomeIcon
               icon={dryRun ? faShieldHalved : faBolt}
-              style={{ color: dryRun ? 'var(--status-warn)' : 'var(--crimson)' }}
+              style={{ color: dryRun ? 'var(--status-warn-fg)' : 'var(--accent)' }}
             />
-            <span className="pill-key">GUARD:</span>
+            <span className="pill-key">Koruma:</span>
             <span
               className="pill-val"
-              style={{ color: dryRun ? 'var(--status-warn)' : 'var(--crimson)' }}
+              style={{ color: dryRun ? 'var(--status-warn-fg)' : 'var(--accent)' }}
             >
-              {dryRun ? 'DRY-RUN' : 'REMEDIATION'}
+              {dryRun ? 'Gözlem Modu' : 'Aktif Self-Healing'}
             </span>
           </div>
 
@@ -102,13 +102,13 @@ export const Navbar: React.FC<NavbarProps> = ({
                   : 'offline'
               }`}
             />
-            <span className="pill-key">STREAM:</span>
+            <span className="pill-key">Akış:</span>
             <span className="pill-val">
               {connectionState === 'connected'
-                ? 'ONLINE (5s)'
+                ? 'Canlı (5s)'
                 : connectionState === 'reconnecting'
-                ? 'RECONNECTING'
-                : 'OFFLINE'}
+                ? 'Yeniden Bağlanıyor'
+                : 'Çevrimdışı'}
             </span>
           </div>
         </div>
@@ -147,7 +147,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {currentUser && (
             <div className="operator-badge">
-              <span className="operator-role">{currentUser.role.toUpperCase()}</span>
+              <span className="operator-role">{currentUser.role === 'admin' ? 'Yönetici' : 'Gözlemci'}</span>
               <span className="operator-name">{currentUser.username}</span>
             </div>
           )}
@@ -157,14 +157,14 @@ export const Navbar: React.FC<NavbarProps> = ({
             className="util-btn"
             onClick={onLogout}
             title="Oturumu Kapat"
-            style={{ color: 'var(--text-secondary)' }}
+            style={{ color: 'var(--text-muted)' }}
           >
             <FontAwesomeIcon icon={faRightFromBracket} />
           </button>
         </div>
       </div>
 
-      {/* Sub-Nav Management Tabs (Firewall/Appliance Navigation) */}
+      {/* Sub-Nav Management Tabs (Soft Rounded Pill Navigation - Section 5 & 8) */}
       <nav className="appliance-tabs-bar">
         <button
           type="button"
@@ -172,7 +172,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           onClick={() => onTabChange('dashboard')}
         >
           <FontAwesomeIcon icon={faGaugeHigh} className="tab-icon" />
-          <span>Genel Bakış (Overview)</span>
+          <span>Genel Bakış</span>
         </button>
 
         <button

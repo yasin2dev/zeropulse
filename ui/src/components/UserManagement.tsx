@@ -219,11 +219,11 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
         <table className="data-table">
           <thead>
             <tr>
-              <th>KULLANICI ADI</th>
-              <th>YETKİ / ROL</th>
-              <th>OLUŞTURULMA TARİHİ</th>
-              <th>DURUM</th>
-              <th>İŞLEMLER</th>
+              <th>Kullanıcı Adı</th>
+              <th>Yetki & Rol</th>
+              <th>Oluşturulma Tarihi</th>
+              <th>Durum</th>
+              <th>İşlemler</th>
             </tr>
           </thead>
           <tbody>
@@ -242,7 +242,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
             ) : (
               users.map((u) => {
                 const isSelf = u.username === currentUser.username;
-                const createdDate = new Date(u.created_at).toLocaleString();
+                const createdDate = new Date(u.created_at).toLocaleString('tr-TR');
 
                 return (
                   <tr key={u.id}>
@@ -250,11 +250,8 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <span style={{ fontWeight: 600 }}>{u.username}</span>
                         {isSelf && (
-                          <span
-                            className="badge ok"
-                            style={{ fontSize: '0.625rem', padding: '0.1rem 0.35rem' }}
-                          >
-                            MEVCUT HESAP
+                          <span className="status-pill sm status-ok" style={{ fontSize: '0.625rem' }}>
+                            Mevcut Hesap
                           </span>
                         )}
                       </div>
@@ -262,14 +259,14 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
 
                     <td>
                       {u.role === 'admin' ? (
-                        <span className="badge warning">
+                        <span className="status-pill sm status-warn">
                           <FontAwesomeIcon icon={faUserShield} />
-                          <span>YÖNETİCİ (ADMIN)</span>
+                          <span>Yönetici</span>
                         </span>
                       ) : (
-                        <span className="badge cooldown">
+                        <span className="status-pill sm status-neutral">
                           <FontAwesomeIcon icon={faEye} />
-                          <span>GÖZLEMCİ (VIEWER)</span>
+                          <span>Gözlemci</span>
                         </span>
                       )}
                     </td>
@@ -278,7 +275,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
                       <span
                         style={{
                           fontSize: '0.75rem',
-                          color: 'var(--text-secondary)',
+                          color: 'var(--text-muted)',
                           fontFamily: 'var(--font-mono)',
                           display: 'inline-flex',
                           alignItems: 'center',
@@ -291,8 +288,8 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
                     </td>
 
                     <td>
-                      <span className="badge ok">
-                        <span>AKTİF</span>
+                      <span className="status-pill sm status-ok">
+                        <span>Aktif</span>
                       </span>
                     </td>
 

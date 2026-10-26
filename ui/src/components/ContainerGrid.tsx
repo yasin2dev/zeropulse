@@ -143,12 +143,12 @@ export const ContainerGrid: React.FC<ContainerGridProps> = ({
         <table className="data-table">
           <thead>
             <tr>
-              <th>KONTEYNER / İMAJ</th>
-              <th>CPU KULLANIMI</th>
-              <th>BELLEK (RAM)</th>
-              <th>CFS THROTTLING</th>
-              <th>DURUM</th>
-              <th>AKSİYON</th>
+              <th>Konteyner & İmaj</th>
+              <th>CPU Kullanımı</th>
+              <th>Bellek (RAM)</th>
+              <th>CFS Throttling</th>
+              <th>Durum</th>
+              <th>İşlem</th>
             </tr>
           </thead>
           <tbody>
@@ -175,9 +175,17 @@ export const ContainerGrid: React.FC<ContainerGridProps> = ({
                 const throttledMs = (c.cpu_throttled_time_ns / 1_000_000).toFixed(0);
 
                 let statusIcon = faCircleCheck;
-                if (c.health_status === 'warning') statusIcon = faTriangleExclamation;
-                else if (c.health_status === 'critical') statusIcon = faCircleExclamation;
-                else if (c.health_status === 'cooldown') statusIcon = faClock;
+                let statusLabel = 'Normal';
+                if (c.health_status === 'warning') {
+                  statusIcon = faTriangleExclamation;
+                  statusLabel = 'Uyarı';
+                } else if (c.health_status === 'critical') {
+                  statusIcon = faCircleExclamation;
+                  statusLabel = 'Kritik';
+                } else if (c.health_status === 'cooldown') {
+                  statusIcon = faClock;
+                  statusLabel = 'Beklemede';
+                }
 
                 return (
                   <tr key={c.id}>
@@ -194,10 +202,10 @@ export const ContainerGrid: React.FC<ContainerGridProps> = ({
                       <div className="usage-text">
                         <span style={{ color: `var(--${cpuClass})` }}>{cpuVal.toFixed(1)}%</span>
                       </div>
-                      <div className="progress-track">
+                      <div className="progress-track sm">
                         <div
                           className={`progress-fill ${cpuClass}`}
-                          style={{ width: `${cpuVal}%` }}
+                          style={{ width: `${Math.min(100, Math.max(2, cpuVal))}%` }}
                         />
                       </div>
                     </td>
@@ -210,10 +218,10 @@ export const ContainerGrid: React.FC<ContainerGridProps> = ({
                           {c.mem_limit_bytes > 0 && ` / ${formatBytes(c.mem_limit_bytes)}`}
                         </span>
                       </div>
-                      <div className="progress-track">
+                      <div className="progress-track sm">
                         <div
                           className={`progress-fill ${memClass}`}
-                          style={{ width: `${memVal}%` }}
+                          style={{ width: `${Math.min(100, Math.max(2, memVal))}%` }}
                         />
                       </div>
                     </td>
@@ -231,15 +239,15 @@ export const ContainerGrid: React.FC<ContainerGridProps> = ({
                     </td>
 
                     <td>
-                      <span className={`badge ${c.health_status}`}>
+                      <span className={`status-pill sm ${c.health_status === 'ok' ? 'status-ok' : c.health_status === 'warning' ? 'status-warn' : c.health_status === 'critical' ? 'status-danger' : 'status-neutral'}`}>
                         <FontAwesomeIcon icon={statusIcon} />
-                        <span>{c.health_status.toUpperCase()}</span>
+                        <span>{statusLabel}</span>
                       </span>
                     </td>
 
                     <td>
                       <button
-                        className="action-btn"
+                        className="btn-action-sm"
                         onClick={() => setSelectedForRestart(c)}
                         disabled={actionLoading}
                         title="Konteyneri manuel olarak yeniden başlat"

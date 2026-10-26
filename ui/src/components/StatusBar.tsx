@@ -27,23 +27,30 @@ export const StatusBar: React.FC<StatusBarProps> = ({
   lastUpdated,
 }) => {
   let systemHealthIcon = faCircleCheck;
-  let systemHealthText = 'SİSTEM DURUMU: NORMAL';
-  let systemHealthColor = 'var(--status-ok)';
+  let systemHealthText = 'Sistem Durumu: Kararlı';
+  let systemHealthClass = 'status-ok';
 
   if (stressIndex >= 0.7) {
     systemHealthIcon = faCircleExclamation;
-    systemHealthText = 'SİSTEM DURUMU: KRİTİK YÜK';
-    systemHealthColor = 'var(--crimson)';
+    systemHealthText = 'Sistem Durumu: Kritik Yük Altında';
+    systemHealthClass = 'status-danger';
   } else if (stressIndex >= 0.3) {
     systemHealthIcon = faTriangleExclamation;
-    systemHealthText = 'SİSTEM DURUMU: DİKKAT';
-    systemHealthColor = 'var(--status-warn)';
+    systemHealthText = 'Sistem Durumu: Dikkat';
+    systemHealthClass = 'status-warn';
   }
+
+  const connLabel =
+    connectionState === 'connected'
+      ? 'Bağlı'
+      : connectionState === 'reconnecting'
+      ? 'Yeniden Bağlanıyor'
+      : 'Bağlantı Kesildi';
 
   return (
     <footer className="appliance-status-bar">
       <div className="status-bar-left">
-        <span className="status-item" style={{ color: systemHealthColor }}>
+        <span className={`status-pill sm ${systemHealthClass}`}>
           <FontAwesomeIcon icon={systemHealthIcon} />
           <span>{systemHealthText}</span>
         </span>
@@ -51,8 +58,8 @@ export const StatusBar: React.FC<StatusBarProps> = ({
         <span className="status-separator">|</span>
 
         <span className="status-item">
-          <FontAwesomeIcon icon={faNetworkWired} style={{ opacity: 0.7 }} />
-          <span>DAEMON: {mode.toUpperCase()} ({connectionState.toUpperCase()})</span>
+          <FontAwesomeIcon icon={faNetworkWired} style={{ opacity: 0.6 }} />
+          <span>Daemon: {mode === 'docker' ? 'Docker Engine' : 'Host Native'} ({connLabel})</span>
         </span>
 
         <span className="status-separator">|</span>
@@ -60,24 +67,24 @@ export const StatusBar: React.FC<StatusBarProps> = ({
         <span className="status-item">
           <FontAwesomeIcon
             icon={dryRun ? faShieldHalved : faBolt}
-            style={{ color: dryRun ? 'var(--status-warn)' : 'var(--crimson)' }}
+            style={{ color: dryRun ? 'var(--status-warn-fg)' : 'var(--accent)' }}
           />
-          <span>POLİTİKA: {dryRun ? 'GÖZLEMLEME (DRY-RUN)' : 'AKTİF REMEDIATION'}</span>
+          <span>Politika: {dryRun ? 'Gözlem Modu (Dry-Run)' : 'Aktif Self-Healing'}</span>
         </span>
       </div>
 
       <div className="status-bar-right">
         {lastUpdated && (
-          <span className="status-item" style={{ opacity: 0.75 }}>
-            <FontAwesomeIcon icon={faClock} style={{ fontSize: '0.7rem' }} />
-            <span>TELEMETRİ SENKRON: {lastUpdated.toLocaleTimeString()}</span>
+          <span className="status-item tabular">
+            <FontAwesomeIcon icon={faClock} style={{ opacity: 0.6 }} />
+            <span>Telemetri: {lastUpdated.toLocaleTimeString('tr-TR')}</span>
           </span>
         )}
 
         <span className="status-separator">|</span>
 
         <span className="status-item version-pill">
-          <span>ZEROPULSE APPLIANCE v0.2.0</span>
+          <span>Zeropulse v0.2.0</span>
         </span>
       </div>
     </footer>

@@ -41,21 +41,27 @@ export const PulseBar: React.FC<PulseBarProps> = ({
   const stressIndex = system.stress_index_1m || 0;
 
   let cpuStatusClass = 'status-ok';
-  if (cpuPercent > 85) cpuStatusClass = 'status-danger';
-  else if (cpuPercent > 65) cpuStatusClass = 'status-warn';
+  let cpuStatusLabel = 'Kararlı / Normal';
+  if (cpuPercent > 85) {
+    cpuStatusClass = 'status-danger';
+    cpuStatusLabel = 'Kritik Doygunluk';
+  } else if (cpuPercent > 65) {
+    cpuStatusClass = 'status-warn';
+    cpuStatusLabel = 'Yüksek Yük';
+  }
 
   let memStatusClass = 'status-ok';
   if (memPercent > 85) memStatusClass = 'status-danger';
   else if (memPercent > 70) memStatusClass = 'status-warn';
 
   let stressStatusClass = 'status-ok';
-  let stressLabel = 'DÜŞÜK';
+  let stressLabel = 'Düşük';
   if (stressIndex >= 0.7) {
     stressStatusClass = 'status-danger';
-    stressLabel = 'KRİTİK';
+    stressLabel = 'Kritik';
   } else if (stressIndex >= 0.3) {
     stressStatusClass = 'status-warn';
-    stressLabel = 'YÜKSEK';
+    stressLabel = 'Yüksek';
   }
 
   const handleToggleClick = () => {
@@ -75,134 +81,155 @@ export const PulseBar: React.FC<PulseBarProps> = ({
 
   return (
     <div className="pulse-panel">
-      {/* 4-Metric Grid */}
-      <div className="pulse-grid">
-        {/* Host CPU */}
-        <div className="metric-gauge">
-          <div className="metric-gauge-header">
-            <span className="metric-header-left">
-              <FontAwesomeIcon icon={faMicrochip} style={{ opacity: 0.8 }} />
-              <span>SİSTEM CPU YÜKÜ</span>
+      {/* Asymmetric Layout: Dominant Vital Health Card (2/3) + Secondary Stack (1/3) */}
+      <div className="pulse-layout">
+        {/* Dominant Primary Focal Area: Host Processor & Core Saturation */}
+        <div className="pulse-hero-card">
+          <div className="pulse-card-header">
+            <div className="pulse-card-title-group">
+              <span className="pulse-card-icon">
+                <FontAwesomeIcon icon={faMicrochip} />
+              </span>
+              <div>
+                <h3 className="pulse-card-title">Sistem Çekirdek Yükü & Vital Telemetri</h3>
+                <span className="pulse-card-meta">
+                  {system.mode === 'docker' ? 'Docker Daemon Yönetimi' : 'Host Native İşlemleri'} &middot; Anomali Eşiği: %80.0
+                </span>
+              </div>
+            </div>
+
+            <span className={`status-pill ${cpuStatusClass}`}>
+              {cpuStatusLabel}
             </span>
-            <span style={{ color: `var(--${cpuStatusClass})` }}>{cpuPercent.toFixed(1)}%</span>
           </div>
-          <div className="metric-gauge-value">
-            {cpuPercent.toFixed(1)}
-            <span className="metric-gauge-unit">%</span>
+
+          <div className="pulse-hero-body">
+            <div className="pulse-hero-metric">
+              <span className="pulse-hero-value">{cpuPercent.toFixed(1)}</span>
+              <span className="pulse-hero-unit">%</span>
+            </div>
+
+            <div className="pulse-hero-meter-block">
+              <div className="progress-track hero-track">
+                <div
+                  className={`progress-fill ${cpuStatusClass}`}
+                  style={{ width: `${Math.min(100, Math.max(2, cpuPercent))}%` }}
+                />
+              </div>
+              <div className="pulse-hero-scale">
+                <span>%0 Boşta</span>
+                <span className="threshold-marker">Eşik: %80.0</span>
+                <span>%100 Doygun</span>
+              </div>
+            </div>
           </div>
-          <div className="progress-track">
-            <div
-              className={`progress-fill ${cpuStatusClass}`}
-              style={{ width: `${cpuPercent}%` }}
-            />
-          </div>
-          <div className="metric-gauge-subtext">
-            <span>Çekirdek Doygunluğu</span>
-            <span>Eşik: %80.0</span>
+
+          <div className="pulse-hero-substrip">
+            <div className="stress-strip-item">
+              <FontAwesomeIcon icon={faGaugeHigh} className="stress-icon" />
+              <span className="stress-label">1 Dk Anomali Stresi:</span>
+              <span className={`status-pill sm ${stressStatusClass}`}>
+                {stressIndex.toFixed(2)} ({stressLabel})
+              </span>
+            </div>
+            <p className="pulse-human-note">
+              {stressIndex >= 0.7
+                ? 'Son 60 saniye içinde ardışık eşik aşımları kaydedildi; sistem koruma eşiğinde.'
+                : cpuPercent > 65
+                ? 'İşlemci yükü ortalamanın üzerinde seyrediyor; pencere motoru değişimleri izliyor.'
+                : 'Çekirdek doygunluğu ve telemetri ritmi olağan sınırlarında sakin çalışıyor.'}
+            </p>
           </div>
         </div>
 
-        {/* Host Memory */}
-        <div className="metric-gauge">
-          <div className="metric-gauge-header">
-            <span className="metric-header-left">
-              <FontAwesomeIcon icon={faMemory} style={{ opacity: 0.8 }} />
-              <span>BELLEK KULLANIMI</span>
-            </span>
-            <span style={{ color: `var(--${memStatusClass})` }}>{memPercent.toFixed(1)}%</span>
-          </div>
-          <div className="metric-gauge-value">
-            {formatBytes(memUsed)}
-            <span className="metric-gauge-unit">/ {formatBytes(memTotal)}</span>
-          </div>
-          <div className="progress-track">
-            <div
-              className={`progress-fill ${memStatusClass}`}
-              style={{ width: `${Math.min(100, memPercent)}%` }}
-            />
-          </div>
-          <div className="metric-gauge-subtext">
-            <span>Boş: {formatBytes(memTotal > memUsed ? memTotal - memUsed : 0)}</span>
-            <span>Eşik: %85.0</span>
-          </div>
-        </div>
+        {/* Secondary Ancillary Stack */}
+        <div className="pulse-secondary-stack">
+          {/* Host Memory */}
+          <div className="pulse-subcard">
+            <div className="subcard-header">
+              <span className="subcard-title">
+                <FontAwesomeIcon icon={faMemory} style={{ opacity: 0.75 }} />
+                <span>Bellek Tüketimi (RAM)</span>
+              </span>
+              <span className={`status-pill sm ${memStatusClass}`}>
+                {memPercent.toFixed(1)}%
+              </span>
+            </div>
 
-        {/* Workloads */}
-        <div className="metric-gauge">
-          <div className="metric-gauge-header">
-            <span className="metric-header-left">
-              <FontAwesomeIcon icon={faBoxesStacked} style={{ opacity: 0.8 }} />
-              <span>AKTİF İŞ YÜKLERİ</span>
-            </span>
-            <span className="badge ok">
-              {system.running_containers}/{system.total_containers} ÇALIŞIYOR
-            </span>
-          </div>
-          <div className="metric-gauge-value">
-            {system.running_containers}
-            <span className="metric-gauge-unit">/ {system.total_containers} Konteyner</span>
-          </div>
-          <div className="progress-track">
-            <div
-              className="progress-fill status-info"
-              style={{
-                width: `${
-                  system.total_containers > 0
-                    ? (system.running_containers / system.total_containers) * 100
-                    : 100
-                }%`,
-              }}
-            />
-          </div>
-          <div className="metric-gauge-subtext">
-            <span>Daemon: {system.mode === 'docker' ? 'Docker Engine' : 'Host Native'}</span>
-          </div>
-        </div>
+            <div className="subcard-metric-row">
+              <span className="subcard-value">{formatBytes(memUsed)}</span>
+              <span className="subcard-limit">/ {formatBytes(memTotal)}</span>
+            </div>
 
-        {/* 1m Stress Index */}
-        <div className="metric-gauge">
-          <div className="metric-gauge-header">
-            <span className="metric-header-left">
-              <FontAwesomeIcon icon={faGaugeHigh} style={{ opacity: 0.8 }} />
-              <span>1 DK STRES İNDEKSİ</span>
-            </span>
-            <span style={{ color: `var(--${stressStatusClass})` }}>{stressLabel}</span>
+            <div className="progress-track sm">
+              <div
+                className={`progress-fill ${memStatusClass}`}
+                style={{ width: `${Math.min(100, memPercent)}%` }}
+              />
+            </div>
+
+            <div className="subcard-footer">
+              <span>Boş: {formatBytes(memTotal > memUsed ? memTotal - memUsed : 0)}</span>
+              <span>Eşik: %85.0</span>
+            </div>
           </div>
-          <div className="metric-gauge-value">
-            {stressIndex.toFixed(2)}
-            <span className="metric-gauge-unit">/ 1.00</span>
-          </div>
-          <div className="progress-track">
-            <div
-              className={`progress-fill ${stressStatusClass}`}
-              style={{ width: `${Math.min(100, stressIndex * 100)}%` }}
-            />
-          </div>
-          <div className="metric-gauge-subtext">
-            <span>Anomali Yoğunluğu</span>
-            <span>Son 60 saniye</span>
+
+          {/* Workloads */}
+          <div className="pulse-subcard">
+            <div className="subcard-header">
+              <span className="subcard-title">
+                <FontAwesomeIcon icon={faBoxesStacked} style={{ opacity: 0.75 }} />
+                <span>İş Yükleri & Konteynerler</span>
+              </span>
+              <span className="status-pill sm status-ok">
+                {system.running_containers} Çalışıyor
+              </span>
+            </div>
+
+            <div className="subcard-metric-row">
+              <span className="subcard-value">{system.running_containers}</span>
+              <span className="subcard-limit">/ {system.total_containers} Konteyner</span>
+            </div>
+
+            <div className="progress-track sm">
+              <div
+                className="progress-fill status-ok"
+                style={{
+                  width: `${
+                    system.total_containers > 0
+                      ? (system.running_containers / system.total_containers) * 100
+                      : 100
+                  }%`,
+                }}
+              />
+            </div>
+
+            <div className="subcard-footer">
+              <span>Çalışma Modu: {system.mode === 'docker' ? 'Docker Engine' : 'Host Native'}</span>
+              <span>Anomali: Yok</span>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Dry-Run Safety Switch */}
+      {/* Tactile Autonomous Remediation / Safety Switch */}
       <div className="safety-bar">
         <div className="safety-info">
           <div className={`safety-icon-wrapper ${dryRun ? 'dry' : 'remediation'}`}>
             <FontAwesomeIcon icon={dryRun ? faShieldHalved : faBolt} />
           </div>
-          <div>
-            <div className="safety-title">
-              <span>DRY-RUN EMNİYET KİLİDİ:</span>
-              <span style={{ color: dryRun ? 'var(--status-warn)' : 'var(--crimson)' }}>
-                {dryRun ? 'DEVREDE (GÖZLEMLEME MODU)' : 'DEVRE DIŞI (AKTİF REMEDIATION)'}
+          <div className="safety-text-group">
+            <div className="safety-title-row">
+              <span className="safety-title">Otonom İyileştirme Politikası:</span>
+              <span className={`status-pill ${dryRun ? 'status-warn' : 'status-danger'}`}>
+                {dryRun ? 'Gözlem Modu (Dry-Run)' : 'Aktif Self-Healing Devrede'}
               </span>
             </div>
-            <div className="safety-desc">
+            <p className="safety-desc">
               {dryRun
-                ? 'Kural ihlallerinde aksiyonlar sadece simüle edilir ve kaydedilir; sistem müdahalesi yapılmaz.'
-                : 'DİKKAT: Kural ihlali durumunda kararsız kalan konteynerler kural motoru tarafından otomatik yeniden başlatılır.'}
-            </div>
+                ? 'Kural ihlallerinde kararsız kalan iş yükleri için yalnızca teşhis logu üretilir; otomatik restart uygulanmaz.'
+                : 'Dikkat: Tanımlı kaynak eşiklerini 3 ardışık periyot aşan konteynerler anında otonom olarak yeniden başlatılır.'}
+            </p>
           </div>
         </div>
 
