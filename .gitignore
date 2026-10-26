@@ -16,3 +16,6 @@ zeropulse
 # Web UI
 */dist
 */node_modules
+
+# Agentic development spec files
+/specs
