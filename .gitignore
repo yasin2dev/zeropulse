@@ -12,3 +12,7 @@ zeropulse
 # Environments / OS
 .DS_Store
 *.swp
+
+# Web UI
+*/dist
+*/node_modules
