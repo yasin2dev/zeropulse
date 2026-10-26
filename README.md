@@ -21,6 +21,7 @@ Zeropulse, Docker konteynerleri ve Standalone (bare-metal / VM) Linux ve FreeBSD
   - [stdout vs stderr Ayrımı](#stdout-vs-stderr-ayrımı)
   - [AnomalyEvent Çıktısı (JSON)](#anomalyevent-çıktısı-json)
 - [Testlerin Çalıştırılması](#testlerin-çalıştırılması)
+- [Edge Dashboard ve Geliştirme Kılavuzu](#edge-dashboard-ve-geliştirme-kılavuzu)
 
 ---
 
@@ -219,3 +220,13 @@ go test ./...
 # Önbelleksiz detaylı çalıştırma
 go test -v -count=1 ./...
 ```
+
+---
+
+## Edge Dashboard ve Geliştirme Kılavuzu
+
+Zeropulse, yerel host üzerinde çalışan izole bir web paneli (`ui/`) ve dahili SSE telemetri API'si sunar.
+
+Ajanı ve yönetim panelini yerel ortamda çalıştırmak, REST API ve SSE akışını test etmek, stres senaryoları simüle etmek için detaylı rehbere göz atabilirsiniz:
+👉 **[DEVELOPMENT.md](DEVELOPMENT.md)**
+

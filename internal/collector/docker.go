@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"time"
@@ -101,3 +102,32 @@ func CollectDocker() (*DockerSnapshot, error) {
 		Containers:  infos,
 	}, nil
 }
+
+// RestartContainer requests the Docker daemon to restart a given container by its ID or Name.
+func RestartContainer(ctx context.Context, containerID string) error {
+	client := newDockerHTTPClient()
+	url := fmt.Sprintf("http://localhost/v1.41/containers/%s/restart?t=10", containerID)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, nil)
+	if err != nil {
+		return fmt.Errorf("build restart request: %w", err)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("docker api restart call: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		var dockerErr struct {
+			Message string `json:"message"`
+		}
+		if err := json.Unmarshal(body, &dockerErr); err == nil && dockerErr.Message != "" {
+			return fmt.Errorf("docker api (%d): %s", resp.StatusCode, dockerErr.Message)
+		}
+		return fmt.Errorf("docker api returned HTTP %d: %s", resp.StatusCode, string(body))
+	}
+	return nil
+}
+
