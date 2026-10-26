@@ -1,0 +1,33 @@
+[Unit]
+Description=Zeropulse - Edge Observability & Self-Healing Agent
+Documentation=https://github.com/zeropulse/zeropulse
+After=network.target docker.service
+Wants=docker.service
+
+[Service]
+Type=simple
+User=root
+Group=root
+
+# Çalıştırılabilir dosya konumu
+ExecStart=/usr/local/bin/zeropulse --listen-addr 0.0.0.0:8080 --data-dir /var/lib/zeropulse
+
+# Ortam değişkenleri yapılandırma dosyası
+EnvironmentFile=-/etc/zeropulse/zeropulse.env
+
+# Hata durumunda otomatik yeniden başlatma politikası
+Restart=always
+RestartSec=5s
+
+# Kaynak kısıtlamaları ve limitler
+LimitNOFILE=65536
+MemoryMax=100M
+CPUQuota=20%
+
+# Loglama (journalctl üzerinden izlenebilir)
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=zeropulse
+
+[Install]
+WantedBy=multi-user.target
