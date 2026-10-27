@@ -112,10 +112,28 @@ func main() {
 		"cooldown", cooldown.String(),
 	)
 
-	customRuleEngine, err := setupRuleEngine(configPath, dryRun, env, os.Stdout, logger)
+	resolvedConfigPath := config.ResolveConfigPath(configPath, os.Getenv("ZEROPULSE_CONFIG"))
+	if resolvedConfigPath != "" {
+		logger.Info("using rule configuration file", "path", resolvedConfigPath)
+	}
+
+	customRuleEngine, err := setupRuleEngine(resolvedConfigPath, dryRun, env, os.Stdout, logger)
 	if err != nil {
 		logger.Error("configuration initialization failed", "error", err)
 		os.Exit(1)
+	}
+	if customRuleEngine == nil {
+		// Initialize empty rule engine so API and UI can dynamically manage rules
+		customRuleEngine = ruleengine.NewRuleEngine([]config.Rule{}, dryRun, os.Stdout, logger)
+	}
+
+	activeConfigPath := resolvedConfigPath
+	if activeConfigPath == "" {
+		if fi, err := os.Stat("/etc/zeropulse"); err == nil && fi.IsDir() {
+			activeConfigPath = "/etc/zeropulse/rules.yaml"
+		} else {
+			activeConfigPath = "./rules.yaml"
+		}
 	}
 
 	dbPath := filepath.Join(dataDir, "zeropulse.db")
@@ -127,6 +145,7 @@ func main() {
 	defer store.Close()
 	logger.Info("persistent bbolt database ready", "path", dbPath)
 
+	loader := config.ConfigLoader{}
 	serverCfg := server.ServerConfig{
 		Addr:        listenAddr,
 		DryRun:      dryRun,
@@ -135,8 +154,55 @@ func main() {
 		AuthPass:    authPass,
 		APIToken:    apiToken,
 		Store:       store,
+		RuleEngine:  customRuleEngine,
+		ConfigPath:  activeConfigPath,
+		SaveRules: func(rules []config.Rule) error {
+			return loader.Save(activeConfigPath, rules)
+		},
 	}
 	apiServer := server.NewServer(serverCfg, env, logger)
+
+	// Forward custom rule anomalies to embedded dashboard audit log and self-healing executor
+	customRuleEngine.SetAnomalyHandler(func(evt ruleengine.AnomalyEvent) {
+		dryRunActive := apiServer.IsDryRun()
+		status := "TRIGGERED"
+		if dryRunActive {
+			status = "DRY_RUN_SKIPPED"
+		}
+
+		entry := server.AuditEntry{
+			ID:               fmt.Sprintf("rule-anom-%d", time.Now().UnixNano()),
+			Timestamp:        time.Now().UTC(),
+			ContainerID:      evt.ContainerID,
+			ContainerName:    evt.ContainerName,
+			RuleName:         evt.RuleName,
+			MetricType:       evt.MetricType,
+			CurrentValue:     evt.CurrentValue,
+			Threshold:        evt.Threshold,
+			ConsecutiveCount: evt.ConsecutiveCount,
+			Action:           evt.Action,
+			DryRun:           dryRunActive,
+			Status:           status,
+			Message:          fmt.Sprintf("[%s] Container %s breached rule %q (%s: %.1f, threshold: %.1f)", evt.RuleName, evt.ContainerName, evt.RuleName, evt.MetricType, evt.CurrentValue, evt.Threshold),
+		}
+
+		if !dryRunActive && (evt.Action == "RESTART" || evt.Action == engine.ActionRestartSuggested) && env == collector.EnvDocker {
+			logger.Warn("executing self-healing restart remediation from rule engine", "container_id", evt.ContainerID, "container_name", evt.ContainerName, "rule", evt.RuleName)
+			restartErr := collector.RestartContainer(context.Background(), evt.ContainerID)
+			if restartErr != nil {
+				entry.Status = "REMEDIATION_FAILED"
+				entry.Message += fmt.Sprintf(" | Remediation restart failed: %v", restartErr)
+				logger.Error("self-healing remediation failed", "container_id", evt.ContainerID, "error", restartErr)
+			} else {
+				entry.Status = "ACTION_EXECUTED"
+				entry.Message += " | Container successfully restarted by custom rule engine"
+				logger.Info("self-healing remediation succeeded", "container_id", evt.ContainerID, "rule", evt.RuleName)
+			}
+		}
+
+		apiServer.PushAnomaly(entry)
+	})
+
 	go func() {
 		if err := apiServer.Start(); err != nil {
 			logger.Error("embedded api server error", "error", err)
@@ -318,6 +384,11 @@ func collectAndPrintDocker(ctx context.Context, logger *slog.Logger, enc *json.E
 			anomMap[a.ContainerID] = a
 		}
 
+		var customBreaches map[string]string
+		if customEngine != nil {
+			customBreaches = customEngine.GetBreachedContainers()
+		}
+
 		for _, c := range snap.Containers {
 			totalCPU += c.CPUPercent
 			totalMemUsed += c.MemUsageBytes
@@ -328,6 +399,8 @@ func collectAndPrintDocker(ctx context.Context, logger *slog.Logger, enc *json.E
 			health := "ok"
 			if _, ok := anomMap[c.ContainerID]; ok {
 				health = "critical"
+			} else if customHealth, ok := customBreaches[c.ContainerID]; ok {
+				health = customHealth
 			} else if c.CPUPercent > 70.0 || c.MemPercent > 75.0 {
 				health = "warning"
 			}
