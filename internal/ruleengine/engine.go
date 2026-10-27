@@ -2,9 +2,11 @@ package ruleengine
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"log/slog"
 	"os"
+	"sync"
 
 	"zeropulse-agent/internal/collector"
 	"zeropulse-agent/internal/config"
@@ -13,14 +15,16 @@ import (
 // RuleEngine evaluates metrics snapshots against configured rules in memory,
 // tracking state and cooldowns to emit AnomalyEvents when breaches occur.
 type RuleEngine struct {
-	rules    []config.Rule
-	state    *StateTracker
-	cooldown *CooldownTracker
-	dryRun   bool
-	out      io.Writer
-	logger   *slog.Logger
-	hostname func() (string, error) // for testability; defaults to os.Hostname
-	evalHook func(rule config.Rule, c collector.ContainerMetrics) // for testability
+	mu        sync.RWMutex
+	rules     []config.Rule
+	state     *StateTracker
+	cooldown  *CooldownTracker
+	dryRun    bool
+	out       io.Writer
+	logger    *slog.Logger
+	onAnomaly func(evt AnomalyEvent)
+	hostname  func() (string, error) // for testability; defaults to os.Hostname
+	evalHook  func(rule config.Rule, c collector.ContainerMetrics) // for testability
 }
 
 // NewRuleEngine constructs a new RuleEngine instance.
@@ -63,13 +67,19 @@ func (e *RuleEngine) EvaluateDocker(snap *collector.DockerMetricsSnapshot) {
 		return
 	}
 
+	e.mu.RLock()
+	rules := make([]config.Rule, len(e.rules))
+	copy(rules, e.rules)
+	dryRun := e.dryRun
+	e.mu.RUnlock()
+
 	activeContainerIDs := make(map[string]struct{}, len(snap.Containers))
 	for _, c := range snap.Containers {
 		activeContainerIDs[c.ContainerID] = struct{}{}
 	}
 
 	for _, c := range snap.Containers {
-		for _, rule := range e.rules {
+		for _, rule := range rules {
 			func() {
 				defer func() {
 					if r := recover(); r != nil {
@@ -119,7 +129,7 @@ func (e *RuleEngine) EvaluateDocker(snap *collector.DockerMetricsSnapshot) {
 							rule.Threshold,
 							count,
 							string(rule.Action),
-							e.dryRun,
+							dryRun,
 						)
 						e.emitEvent(evt)
 					}
@@ -139,6 +149,12 @@ func (e *RuleEngine) EvaluateStandalone(snap *collector.StandaloneSnapshot) {
 		return
 	}
 
+	e.mu.RLock()
+	rules := make([]config.Rule, len(e.rules))
+	copy(rules, e.rules)
+	dryRun := e.dryRun
+	e.mu.RUnlock()
+
 	const hostContainerID = "host"
 	hostname := "unknown"
 	if e.hostname != nil {
@@ -151,7 +167,7 @@ func (e *RuleEngine) EvaluateStandalone(snap *collector.StandaloneSnapshot) {
 		hostContainerID: {},
 	}
 
-	for _, rule := range e.rules {
+	for _, rule := range rules {
 		func() {
 			defer func() {
 				if r := recover(); r != nil {
@@ -197,7 +213,7 @@ func (e *RuleEngine) EvaluateStandalone(snap *collector.StandaloneSnapshot) {
 						rule.Threshold,
 						count,
 						string(rule.Action),
-						e.dryRun,
+						dryRun,
 					)
 					e.emitEvent(evt)
 				}
@@ -231,4 +247,125 @@ func (e *RuleEngine) emitEvent(evt AnomalyEvent) {
 	if e.out != nil {
 		_, _ = e.out.Write(append(data, '\n'))
 	}
+
+	e.mu.RLock()
+	handler := e.onAnomaly
+	e.mu.RUnlock()
+
+	if handler != nil {
+		handler(evt)
+	}
 }
+
+// Rules returns a thread-safe copy of currently configured rules.
+func (e *RuleEngine) Rules() []config.Rule {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+	res := make([]config.Rule, len(e.rules))
+	copy(res, e.rules)
+	return res
+}
+
+// AddRule validates and registers a new rule into the engine in a thread-safe manner.
+func (e *RuleEngine) AddRule(rule config.Rule) error {
+	if err := rule.Validate(); err != nil {
+		return err
+	}
+
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	for _, r := range e.rules {
+		if r.Name == rule.Name {
+			return fmt.Errorf("rule with name %q already exists", rule.Name)
+		}
+	}
+
+	e.rules = append(e.rules, rule)
+	if e.logger != nil {
+		e.logger.Info("rule added to engine", slog.String("name", rule.Name))
+	}
+	return nil
+}
+
+// DeleteRule removes a rule by name from the engine. Returns true if the rule was found and deleted.
+func (e *RuleEngine) DeleteRule(name string) bool {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	found := false
+	filtered := make([]config.Rule, 0, len(e.rules))
+	for _, r := range e.rules {
+		if r.Name == name {
+			found = true
+			continue
+		}
+		filtered = append(filtered, r)
+	}
+
+	if found {
+		e.rules = filtered
+		if e.logger != nil {
+			e.logger.Info("rule deleted from engine", slog.String("name", name))
+		}
+	}
+	return found
+}
+
+// SetRules updates the entire rule set atomically after validation.
+func (e *RuleEngine) SetRules(rules []config.Rule) error {
+	for i, r := range rules {
+		if err := r.Validate(); err != nil {
+			return fmt.Errorf("invalid rule at index %d (%q): %w", i, r.Name, err)
+		}
+	}
+
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	e.rules = make([]config.Rule, len(rules))
+	copy(e.rules, rules)
+	return nil
+}
+
+// SetDryRun dynamically switches between dry-run and active remediation.
+func (e *RuleEngine) SetDryRun(dryRun bool) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	e.dryRun = dryRun
+}
+
+// IsDryRun returns the current operational mode of the engine.
+func (e *RuleEngine) IsDryRun() bool {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+	return e.dryRun
+}
+
+// SetAnomalyHandler registers a callback invoked whenever an AnomalyEvent is emitted.
+func (e *RuleEngine) SetAnomalyHandler(handler func(evt AnomalyEvent)) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	e.onAnomaly = handler
+}
+
+// GetBreachedContainers returns a map of container IDs currently breaching rules and their severity ("critical" or "warning").
+func (e *RuleEngine) GetBreachedContainers() map[string]string {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+
+	res := make(map[string]string)
+	for _, rule := range e.rules {
+		for key, count := range e.state.counts {
+			if key.RuleName == rule.Name && count >= rule.ConsecutivePeriods {
+				if rule.Action == config.ActionRestart {
+					res[key.ContainerID] = "critical"
+				} else if res[key.ContainerID] != "critical" {
+					res[key.ContainerID] = "warning"
+				}
+			}
+		}
+	}
+	return res
+}
+

@@ -244,3 +244,169 @@ func TestEngineStandaloneMode(t *testing.T) {
 		t.Fatalf("expected RuleName='standalone-rule', got %q", evt.RuleName)
 	}
 }
+
+func TestRuleEngine_DynamicRuleManagement(t *testing.T) {
+	initialRule := config.Rule{
+		Name:               "rule-1",
+		MetricType:         config.MetricCPUPercent,
+		Operator:           config.OperatorGT,
+		Threshold:          50.0,
+		ConsecutivePeriods: 1,
+		Action:             config.ActionNotify,
+	}
+
+	engine := NewRuleEngine([]config.Rule{initialRule}, true, nil, nil)
+
+	// 1. Check initial rules
+	rules := engine.Rules()
+	if len(rules) != 1 || rules[0].Name != "rule-1" {
+		t.Fatalf("expected 1 rule with name 'rule-1', got %v", rules)
+	}
+
+	// 2. Add new valid rule
+	newRule := config.Rule{
+		Name:               "rule-2",
+		MetricType:         config.MetricMemPercent,
+		Operator:           config.OperatorGTE,
+		Threshold:          80.0,
+		ConsecutivePeriods: 2,
+		Action:             config.ActionRestart,
+	}
+	if err := engine.AddRule(newRule); err != nil {
+		t.Fatalf("AddRule failed: %v", err)
+	}
+	if len(engine.Rules()) != 2 {
+		t.Fatalf("expected 2 rules, got %d", len(engine.Rules()))
+	}
+
+	// 3. Reject duplicate rule name
+	if err := engine.AddRule(newRule); err == nil {
+		t.Fatalf("expected error for duplicate rule name, got nil")
+	}
+
+	// 4. Reject invalid rule
+	badRule := config.Rule{
+		Name:       "bad",
+		MetricType: "INVALID",
+	}
+	if err := engine.AddRule(badRule); err == nil {
+		t.Fatalf("expected error for invalid rule, got nil")
+	}
+
+	// 5. Delete existing rule
+	if !engine.DeleteRule("rule-1") {
+		t.Fatalf("expected DeleteRule to return true for 'rule-1'")
+	}
+	if len(engine.Rules()) != 1 || engine.Rules()[0].Name != "rule-2" {
+		t.Fatalf("expected 1 rule left ('rule-2'), got %v", engine.Rules())
+	}
+
+	// 6. Delete non-existent rule
+	if engine.DeleteRule("non-existent") {
+		t.Fatalf("expected DeleteRule to return false for non-existent rule")
+	}
+
+	// 7. SetRules replaces entire list
+	replacementRules := []config.Rule{
+		{
+			Name:               "new-rule-a",
+			MetricType:         config.MetricCPUPercent,
+			Operator:           config.OperatorGT,
+			Threshold:          90.0,
+			ConsecutivePeriods: 1,
+			Action:             config.ActionNotify,
+		},
+	}
+	if err := engine.SetRules(replacementRules); err != nil {
+		t.Fatalf("SetRules failed: %v", err)
+	}
+	if len(engine.Rules()) != 1 || engine.Rules()[0].Name != "new-rule-a" {
+		t.Fatalf("SetRules did not correctly replace rules: %v", engine.Rules())
+	}
+}
+
+func TestRuleEngine_SetAnomalyHandler(t *testing.T) {
+	rule := config.Rule{
+		Name:               "alert-rule",
+		MetricType:         config.MetricCPUPercent,
+		Operator:           config.OperatorGT,
+		Threshold:          50.0,
+		ConsecutivePeriods: 1,
+		Action:             config.ActionNotify,
+	}
+
+	var out bytes.Buffer
+	engine := NewRuleEngine([]config.Rule{rule}, true, &out, nil)
+
+	var receivedEvt *AnomalyEvent
+	engine.SetAnomalyHandler(func(evt AnomalyEvent) {
+		receivedEvt = &evt
+	})
+
+	snap := &collector.DockerMetricsSnapshot{
+		Containers: []collector.ContainerMetrics{
+			{
+				ContainerID: "cid-handler",
+				Name:        "cname-handler",
+				CPUPercent:  75.0, // breach
+			},
+		},
+	}
+
+	engine.EvaluateDocker(snap)
+
+	if receivedEvt == nil {
+		t.Fatalf("expected onAnomaly handler to be invoked, but received nil")
+	}
+	if receivedEvt.ContainerID != "cid-handler" || receivedEvt.RuleName != "alert-rule" {
+		t.Fatalf("handler received incorrect event: %+v", receivedEvt)
+	}
+}
+
+func TestRuleEngine_ConcurrentAccess(t *testing.T) {
+	engine := NewRuleEngine([]config.Rule{}, true, nil, nil)
+
+	snap := &collector.DockerMetricsSnapshot{
+		Containers: []collector.ContainerMetrics{
+			{
+				ContainerID: "cid-conc",
+				Name:        "cname-conc",
+				CPUPercent:  60.0,
+			},
+		},
+	}
+
+	done := make(chan bool)
+
+	// Goroutine 1: Continuous evaluation
+	go func() {
+		for i := 0; i < 50; i++ {
+			engine.EvaluateDocker(snap)
+			time.Sleep(1 * time.Millisecond)
+		}
+		done <- true
+	}()
+
+	// Goroutine 2: Dynamic Add / Delete rules
+	go func() {
+		for i := 0; i < 50; i++ {
+			_ = engine.AddRule(config.Rule{
+				Name:               "rule-dyn",
+				MetricType:         config.MetricCPUPercent,
+				Operator:           config.OperatorGT,
+				Threshold:          50.0,
+				ConsecutivePeriods: 1,
+				Action:             config.ActionNotify,
+			})
+			_ = engine.Rules()
+			engine.SetDryRun(i%2 == 0)
+			_ = engine.DeleteRule("rule-dyn")
+			time.Sleep(1 * time.Millisecond)
+		}
+		done <- true
+	}()
+
+	<-done
+	<-done
+}
+
