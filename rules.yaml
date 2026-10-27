@@ -1,0 +1,30 @@
+rules:
+  # Tüm konteynerlerde CPU %85 üzerinde ardışık 3 periyot kalırsa uyar
+  - name: "high-cpu-alert"
+    metric_type: "CPU_PERCENT"
+    operator: "GTE"
+    threshold: 85.0
+    consecutive_periods: 3
+    action: "NOTIFY"
+    cooldown_seconds: 60
+    container_filter: ""
+
+  # Yalnızca 'api-server' isimli konteynerde kritik CPU aşımında yeniden başlat
+  - name: "critical-cpu-restart"
+    metric_type: "CPU_PERCENT"
+    operator: "GT"
+    threshold: 95.0
+    consecutive_periods: 2
+    action: "RESTART"
+    cooldown_seconds: 300
+    container_filter: "api-server"
+
+  # Bellek %90 üzerinde 2 periyot kaldığında uyar
+  - name: "high-memory-warn"
+    metric_type: "MEM_PERCENT"
+    operator: "GTE"
+    threshold: 90.0
+    consecutive_periods: 2
+    action: "NOTIFY"
+    cooldown_seconds: 120
+    container_filter: ""

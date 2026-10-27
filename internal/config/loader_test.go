@@ -233,3 +233,110 @@ func TestLoad_StandaloneFiltersUnsupportedMetrics(t *testing.T) {
 		t.Errorf("expected rule %q, got %q", "cpu-ok", rules[0].Name)
 	}
 }
+
+func TestResolveConfigPath(t *testing.T) {
+	// 1. Explicit CLI flag takes priority
+	got := ResolveConfigPath("/path/to/cli.yaml", "/path/to/env.yaml")
+	if got != "/path/to/cli.yaml" {
+		t.Errorf("expected cli path, got %q", got)
+	}
+
+	// 2. Env path takes priority if CLI path is empty
+	got = ResolveConfigPath("", "/path/to/env.yaml")
+	if got != "/path/to/env.yaml" {
+		t.Errorf("expected env path, got %q", got)
+	}
+
+	// 3. Defaults checked in order when CLI and Env are empty
+	tmpDir := t.TempDir()
+	candidate1 := filepath.Join(tmpDir, "does-not-exist.yaml")
+	candidate2 := filepath.Join(tmpDir, "second.yaml")
+	candidate3 := filepath.Join(tmpDir, "third.yaml")
+
+	if err := os.WriteFile(candidate2, []byte("rules: []"), 0644); err != nil {
+		t.Fatalf("failed to create test file: %v", err)
+	}
+
+	got = ResolveConfigPath("", "", candidate1, candidate2, candidate3)
+	if got != candidate2 {
+		t.Errorf("expected second candidate, got %q", got)
+	}
+
+	// 4. Returns empty string if no candidate exists
+	got = ResolveConfigPath("", "", candidate1, candidate3)
+	if got != "" {
+		t.Errorf("expected empty string when no files exist, got %q", got)
+	}
+}
+
+func TestSave_YAMLAndJSON(t *testing.T) {
+	tmpDir := t.TempDir()
+	loader := ConfigLoader{}
+
+	sampleRules := []Rule{
+		{
+			Name:               "cpu-high",
+			MetricType:         MetricCPUPercent,
+			Operator:           OperatorGT,
+			Threshold:          80.0,
+			ConsecutivePeriods: 3,
+			Action:             ActionRestart,
+			CooldownSeconds:    60,
+			ContainerFilter:    "web",
+		},
+		{
+			Name:               "mem-high",
+			MetricType:         MetricMemPercent,
+			Operator:           OperatorGTE,
+			Threshold:          90.0,
+			ConsecutivePeriods: 1,
+			Action:             ActionNotify,
+			CooldownSeconds:    30,
+			ContainerFilter:    "",
+		},
+	}
+
+	// 1. Save as YAML and reload
+	yamlPath := filepath.Join(tmpDir, "rules.yaml")
+	if err := loader.Save(yamlPath, sampleRules); err != nil {
+		t.Fatalf("Save YAML failed: %v", err)
+	}
+	loadedYAML, err := loader.Load(yamlPath, false, testLogger())
+	if err != nil {
+		t.Fatalf("Load saved YAML failed: %v", err)
+	}
+	if len(loadedYAML) != 2 {
+		t.Fatalf("expected 2 rules in YAML, got %d", len(loadedYAML))
+	}
+	if loadedYAML[0].Name != "cpu-high" || loadedYAML[1].Action != ActionNotify {
+		t.Errorf("loaded YAML rule data mismatch: %+v", loadedYAML)
+	}
+
+	// 2. Save as JSON and reload
+	jsonPath := filepath.Join(tmpDir, "rules.json")
+	if err := loader.Save(jsonPath, sampleRules); err != nil {
+		t.Fatalf("Save JSON failed: %v", err)
+	}
+	loadedJSON, err := loader.Load(jsonPath, false, testLogger())
+	if err != nil {
+		t.Fatalf("Load saved JSON failed: %v", err)
+	}
+	if len(loadedJSON) != 2 {
+		t.Fatalf("expected 2 rules in JSON, got %d", len(loadedJSON))
+	}
+	if loadedJSON[0].Threshold != 80.0 || loadedJSON[1].Name != "mem-high" {
+		t.Errorf("loaded JSON rule data mismatch: %+v", loadedJSON)
+	}
+
+	// 3. Validation failure prevents saving
+	invalidRules := []Rule{
+		{
+			Name:       "bad-rule",
+			MetricType: "INVALID_METRIC",
+		},
+	}
+	if err := loader.Save(filepath.Join(tmpDir, "invalid.yaml"), invalidRules); err == nil {
+		t.Fatal("expected error saving invalid rule, got nil")
+	}
+}
+

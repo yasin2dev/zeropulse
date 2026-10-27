@@ -100,3 +100,107 @@ func (c ConfigLoader) Load(path string, standalone bool, logger *slog.Logger) ([
 
 	return valid, nil
 }
+
+// DefaultConfigPaths returns the standard fallback locations checked for rule files.
+func DefaultConfigPaths() []string {
+	return []string{
+		"/etc/zeropulse/rules.yaml",
+		"/etc/zeropulse/rules.json",
+		"./rules.yaml",
+		"./rules.json",
+	}
+}
+
+// ResolveConfigPath determines which configuration file path to use.
+// Evaluation order:
+//  1. cliPath if not empty (explicit user flag)
+//  2. envPath if not empty (explicit environment variable)
+//  3. First existing file from defaultPaths (or DefaultConfigPaths() if not supplied)
+//
+// Returns empty string if no candidate file exists.
+func ResolveConfigPath(cliPath, envPath string, defaultPaths ...string) string {
+	if strings.TrimSpace(cliPath) != "" {
+		return strings.TrimSpace(cliPath)
+	}
+	if strings.TrimSpace(envPath) != "" {
+		return strings.TrimSpace(envPath)
+	}
+
+	candidates := defaultPaths
+	if len(candidates) == 0 {
+		candidates = DefaultConfigPaths()
+	}
+
+	for _, p := range candidates {
+		if fi, err := os.Stat(p); err == nil && !fi.IsDir() {
+			return p
+		}
+	}
+
+	return ""
+}
+
+// Save validates the rules and serializes them to the specified path in YAML or JSON.
+// Format is determined by file extension (.json -> JSON, else YAML).
+// The write is atomic: written to a temporary file in the same directory and renamed.
+func (c ConfigLoader) Save(path string, rules []Rule) error {
+	for i, r := range rules {
+		if err := r.Validate(); err != nil {
+			return fmt.Errorf("config: invalid rule at index %d (%q): %w", i, r.Name, err)
+		}
+	}
+
+	raw := rawConfig{Rules: rules}
+	var data []byte
+	var err error
+
+	ext := strings.ToLower(filepath.Ext(path))
+	switch ext {
+	case ".json":
+		data, err = json.MarshalIndent(raw, "", "  ")
+		if err != nil {
+			return fmt.Errorf("config: failed to marshal JSON: %w", err)
+		}
+		data = append(data, '\n')
+	default:
+		data, err = yaml.Marshal(raw)
+		if err != nil {
+			return fmt.Errorf("config: failed to marshal YAML: %w", err)
+		}
+	}
+
+	dir := filepath.Dir(path)
+	if dir != "" && dir != "." {
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			return fmt.Errorf("config: failed to create directory %q: %w", dir, err)
+		}
+	}
+
+	tmpFile, err := os.CreateTemp(dir, "zeropulse-rules-*.tmp")
+	if err != nil {
+		return fmt.Errorf("config: failed to create temporary file: %w", err)
+	}
+	tmpName := tmpFile.Name()
+	defer func() {
+		_ = os.Remove(tmpName)
+	}()
+
+	if _, err := tmpFile.Write(data); err != nil {
+		_ = tmpFile.Close()
+		return fmt.Errorf("config: failed to write to temporary file: %w", err)
+	}
+	if err := tmpFile.Sync(); err != nil {
+		_ = tmpFile.Close()
+		return fmt.Errorf("config: failed to sync temporary file: %w", err)
+	}
+	if err := tmpFile.Close(); err != nil {
+		return fmt.Errorf("config: failed to close temporary file: %w", err)
+	}
+
+	if err := os.Rename(tmpName, path); err != nil {
+		return fmt.Errorf("config: failed to rename temporary file to %q: %w", path, err)
+	}
+
+	return nil
+}
+

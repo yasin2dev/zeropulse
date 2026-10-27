@@ -61,6 +61,15 @@ else
   echo -e "${GREEN}✓ Mevcut /etc/zeropulse/zeropulse.env korundu (üzerine yazılmadı).${NC}"
 fi
 
+if [ ! -f /etc/zeropulse/rules.yaml ] && [ ! -f /etc/zeropulse/rules.json ]; then
+  if [ -f "$PROJECT_ROOT/rules.yaml" ]; then
+    echo -e "${BLUE}▶ Varsayılan kural dosyası oluşturuluyor (/etc/zeropulse/rules.yaml)...${NC}"
+    cp "$PROJECT_ROOT/rules.yaml" /etc/zeropulse/rules.yaml
+    chmod 644 /etc/zeropulse/rules.yaml
+    echo -e "${GREEN}✓ /etc/zeropulse/rules.yaml oluşturuldu.${NC}"
+  fi
+fi
+
 # 4. systemd Servis Dosyasını Güncelle
 echo -e "${BLUE}▶ systemd servis tanımı güncelleniyor...${NC}"
 cp "$SCRIPT_DIR/zeropulse.service" /etc/systemd/system/zeropulse.service
