@@ -13,6 +13,8 @@ import (
 	"time"
 
 	"zeropulse-agent/internal/collector"
+	"zeropulse-agent/internal/config"
+	"zeropulse-agent/internal/ruleengine"
 	"zeropulse-agent/internal/storage"
 )
 
@@ -36,6 +38,9 @@ type ServerConfig struct {
 	AuthPass    string
 	APIToken    string
 	Store       *storage.Store
+	RuleEngine  *ruleengine.RuleEngine
+	ConfigPath  string
+	SaveRules   func(rules []config.Rule) error
 }
 
 // SystemOverview summarizes the overall edge host and container status.
@@ -81,6 +86,9 @@ type Server struct {
 	env           collector.Environment
 	startTime     time.Time
 	dryRun        bool
+	ruleEngine    *ruleengine.RuleEngine
+	configPath    string
+	saveRules     func(rules []config.Rule) error
 	latestPayload *MetricsEventPayload
 	auditLog      *AuditLog
 	sseHub        *SSEHub
@@ -97,14 +105,17 @@ func NewServer(cfg ServerConfig, env collector.Environment, logger *slog.Logger)
 	audit := NewAuditLog(100)
 
 	s := &Server{
-		cfg:       cfg,
-		store:     cfg.Store,
-		env:       env,
-		startTime: time.Now().UTC(),
-		dryRun:    cfg.DryRun,
-		auditLog:  audit,
-		sseHub:    hub,
-		logger:    logger,
+		cfg:        cfg,
+		store:      cfg.Store,
+		env:        env,
+		startTime:  time.Now().UTC(),
+		dryRun:     cfg.DryRun,
+		ruleEngine: cfg.RuleEngine,
+		configPath: cfg.ConfigPath,
+		saveRules:  cfg.SaveRules,
+		auditLog:   audit,
+		sseHub:     hub,
+		logger:     logger,
 	}
 
 	mux := http.NewServeMux()
@@ -114,6 +125,8 @@ func NewServer(cfg ServerConfig, env collector.Environment, logger *slog.Logger)
 	mux.HandleFunc("/api/v1/containers", s.handleContainers)
 	mux.HandleFunc("/api/v1/config/dry-run", s.handleDryRun)
 	mux.HandleFunc("/api/v1/audit/logs", s.handleAuditLogs)
+	mux.HandleFunc("/api/v1/rules", s.handleRules)
+	mux.HandleFunc("/api/v1/rules/", s.handleRuleActions)
 	mux.HandleFunc("/api/v1/containers/", s.handleContainerActions) // matches /api/v1/containers/{id}/restart
 
 	// Authentication & User Management Routes
@@ -166,11 +179,14 @@ func (s *Server) IsDryRun() bool {
 	return s.dryRun
 }
 
-// SetDryRun updates the server dry-run setting.
+// SetDryRun updates the server dry-run setting and propagates to the rule engine.
 func (s *Server) SetDryRun(val bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.dryRun = val
+	if s.ruleEngine != nil {
+		s.ruleEngine.SetDryRun(val)
+	}
 }
 
 // PushMetrics updates the server cache with the latest collector cycle and broadcasts SSE.
@@ -185,7 +201,7 @@ func (s *Server) PushMetrics(payload MetricsEventPayload) {
 	}
 }
 
-// RecordAudit logs an anomaly or remediation event to the in-memory ring buffer.
+// RecordAudit logs an anomaly or remediation event to the in-memory ring buffer and broadcasts via SSE.
 func (s *Server) RecordAudit(containerID, containerName, ruleName, action, message, status string, dryRun bool) {
 	entry := AuditEntry{
 		ID:            fmt.Sprintf("%d", time.Now().UnixNano()),
@@ -198,12 +214,16 @@ func (s *Server) RecordAudit(containerID, containerName, ruleName, action, messa
 		Status:        status,
 		DryRun:        dryRun,
 	}
-	s.auditLog.Add(entry)
+	s.PushAnomaly(entry)
 }
 
-// PushAnomaly logs an audit entry to the audit log buffer.
+// PushAnomaly logs an audit entry to the audit log buffer and broadcasts via SSE.
 func (s *Server) PushAnomaly(entry AuditEntry) {
 	s.auditLog.Add(entry)
+	data, err := json.Marshal(entry)
+	if err == nil {
+		s.sseHub.Broadcast("anomaly", entry.ID, data)
+	}
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -330,7 +350,143 @@ func (s *Server) handleAuditLogs(w http.ResponseWriter, r *http.Request) {
 		"stress_index_1m": stressIndex,
 		"total_count":     len(logs),
 		"logs":            logs,
+		"entries":         logs,
 	})
+}
+
+func (s *Server) handleRules(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		s.mu.RLock()
+		engine := s.ruleEngine
+		cfgPath := s.configPath
+		dryRun := s.dryRun
+		s.mu.RUnlock()
+
+		var rules []config.Rule
+		if engine != nil {
+			rules = engine.Rules()
+		} else {
+			rules = []config.Rule{}
+		}
+
+		writeJSON(w, http.StatusOK, map[string]interface{}{
+			"count":       len(rules),
+			"dry_run":     dryRun,
+			"config_path": cfgPath,
+			"rules":       rules,
+		})
+
+	case http.MethodPost:
+		// Requires admin role if authentication is active
+		if sess := getSessionFromContext(r.Context()); sess != nil && sess.Role != "admin" {
+			writeError(w, http.StatusForbidden, "bu işlem için yönetici (admin) yetkisi gereklidir")
+			return
+		}
+
+		s.mu.RLock()
+		engine := s.ruleEngine
+		saveFn := s.saveRules
+		dryRun := s.dryRun
+		s.mu.RUnlock()
+
+		if engine == nil {
+			writeError(w, http.StatusServiceUnavailable, "kural motoru aktif değil")
+			return
+		}
+
+		var newRule config.Rule
+		if err := json.NewDecoder(r.Body).Decode(&newRule); err != nil {
+			writeError(w, http.StatusBadRequest, "geçersiz istek gövdesi (JSON formatı hatalı)")
+			return
+		}
+
+		if err := newRule.Validate(); err != nil {
+			writeError(w, http.StatusBadRequest, "kural doğrulama hatası: "+err.Error())
+			return
+		}
+
+		if err := engine.AddRule(newRule); err != nil {
+			writeError(w, http.StatusConflict, err.Error())
+			return
+		}
+
+		if saveFn != nil {
+			if err := saveFn(engine.Rules()); err != nil {
+				// Rollback
+				engine.DeleteRule(newRule.Name)
+				s.logger.Error("failed to persist rules to disk", "error", err)
+				writeError(w, http.StatusInternalServerError, "kural diske kaydedilemedi: "+err.Error())
+				return
+			}
+		}
+
+		s.RecordAudit("", "", newRule.Name, "CREATE_RULE",
+			fmt.Sprintf("Yeni kural '%s' (%s %s %g) oluşturuldu", newRule.Name, newRule.MetricType, newRule.Operator, newRule.Threshold),
+			"RULE_CREATED", dryRun)
+
+		writeJSON(w, http.StatusCreated, map[string]interface{}{
+			"message": "kural başarıyla oluşturuldu",
+			"rule":    newRule,
+		})
+
+	default:
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+	}
+}
+
+func (s *Server) handleRuleActions(w http.ResponseWriter, r *http.Request) {
+	ruleName := strings.TrimPrefix(r.URL.Path, "/api/v1/rules/")
+	ruleName = strings.TrimSpace(ruleName)
+	if ruleName == "" {
+		writeError(w, http.StatusBadRequest, "kural adı belirtilmelidir")
+		return
+	}
+
+	switch r.Method {
+	case http.MethodDelete:
+		if sess := getSessionFromContext(r.Context()); sess != nil && sess.Role != "admin" {
+			writeError(w, http.StatusForbidden, "bu işlem için yönetici (admin) yetkisi gereklidir")
+			return
+		}
+
+		s.mu.RLock()
+		engine := s.ruleEngine
+		saveFn := s.saveRules
+		dryRun := s.dryRun
+		s.mu.RUnlock()
+
+		if engine == nil {
+			writeError(w, http.StatusServiceUnavailable, "kural motoru aktif değil")
+			return
+		}
+
+		deleted := engine.DeleteRule(ruleName)
+		if !deleted {
+			writeError(w, http.StatusNotFound, fmt.Sprintf("'%s' isimli kural bulunamadı", ruleName))
+			return
+		}
+
+		if saveFn != nil {
+			if err := saveFn(engine.Rules()); err != nil {
+				s.logger.Error("failed to persist rules after deletion", "error", err)
+				writeError(w, http.StatusInternalServerError, "güncel kurallar diske kaydedilemedi: "+err.Error())
+				return
+			}
+		}
+
+		s.RecordAudit("", "", ruleName, "DELETE_RULE",
+			fmt.Sprintf("'%s' isimli kural silindi", ruleName),
+			"RULE_DELETED", dryRun)
+
+		writeJSON(w, http.StatusOK, map[string]interface{}{
+			"message": "kural başarıyla silindi",
+			"name":    ruleName,
+		})
+
+	default:
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+	}
 }
 
 func (s *Server) handleContainerActions(w http.ResponseWriter, r *http.Request) {

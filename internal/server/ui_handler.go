@@ -26,8 +26,9 @@ func newUIHandler() (http.Handler, error) {
 		}
 
 		path := strings.TrimPrefix(r.URL.Path, "/")
-		if path == "" {
+		if path == "" || path == "index.html" {
 			path = "index.html"
+			w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 		}
 
 		// Check if file exists in the embedded dist
@@ -40,6 +41,7 @@ func newUIHandler() (http.Handler, error) {
 
 		// Fallback to index.html for SPA client-side routing
 		if errors.Is(err, fs.ErrNotExist) {
+			w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 			indexFile, err := dist.Open("index.html")
 			if err != nil {
 				http.NotFound(w, r)

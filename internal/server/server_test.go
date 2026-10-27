@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"zeropulse-agent/internal/collector"
+	"zeropulse-agent/internal/config"
+	"zeropulse-agent/internal/ruleengine"
 )
 
 func newTestLogger() *slog.Logger {
@@ -275,5 +277,128 @@ func TestContainerRestartEndpointRouting(t *testing.T) {
 		t.Fatalf("expected 405 Method Not Allowed, got %d", recMethod.Code)
 	}
 }
+
+func TestRulesEndpoint_CRUD(t *testing.T) {
+	rule1 := config.Rule{
+		Name:               "initial-cpu",
+		MetricType:         config.MetricCPUPercent,
+		Operator:           config.OperatorGT,
+		Threshold:          75.0,
+		ConsecutivePeriods: 2,
+		Action:             config.ActionRestart,
+		CooldownSeconds:    60,
+	}
+
+	engine := ruleengine.NewRuleEngine([]config.Rule{rule1}, false, nil, nil)
+	var savedRules []config.Rule
+	saveFn := func(rules []config.Rule) error {
+		savedRules = make([]config.Rule, len(rules))
+		copy(savedRules, rules)
+		return nil
+	}
+
+	cfg := ServerConfig{
+		Addr:       "127.0.0.1:0",
+		RuleEngine: engine,
+		ConfigPath: "/etc/zeropulse/rules.yaml",
+		SaveRules:  saveFn,
+	}
+	srv := NewServer(cfg, collector.EnvStandalone, newTestLogger())
+
+	// 1. GET /api/v1/rules
+	reqGet := httptest.NewRequest(http.MethodGet, "/api/v1/rules", nil)
+	recGet := httptest.NewRecorder()
+	srv.httpServer.Handler.ServeHTTP(recGet, reqGet)
+
+	if recGet.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK, got %d", recGet.Code)
+	}
+
+	var resGet struct {
+		Count      int           `json:"count"`
+		DryRun     bool          `json:"dry_run"`
+		ConfigPath string        `json:"config_path"`
+		Rules      []config.Rule `json:"rules"`
+	}
+	if err := json.NewDecoder(recGet.Body).Decode(&resGet); err != nil {
+		t.Fatalf("failed to parse GET rules: %v", err)
+	}
+	if resGet.Count != 1 || len(resGet.Rules) != 1 || resGet.Rules[0].Name != "initial-cpu" {
+		t.Fatalf("GET /api/v1/rules returned unexpected data: %+v", resGet)
+	}
+	if resGet.ConfigPath != "/etc/zeropulse/rules.yaml" {
+		t.Errorf("expected config path '/etc/zeropulse/rules.yaml', got %q", resGet.ConfigPath)
+	}
+
+	// 2. POST /api/v1/rules (Valid Rule)
+	newRule := config.Rule{
+		Name:               "new-mem",
+		MetricType:         config.MetricMemPercent,
+		Operator:           config.OperatorGTE,
+		Threshold:          85.0,
+		ConsecutivePeriods: 1,
+		Action:             config.ActionNotify,
+		CooldownSeconds:    30,
+	}
+	payload, _ := json.Marshal(newRule)
+	reqPost := httptest.NewRequest(http.MethodPost, "/api/v1/rules", bytes.NewReader(payload))
+	recPost := httptest.NewRecorder()
+	srv.httpServer.Handler.ServeHTTP(recPost, reqPost)
+
+	if recPost.Code != http.StatusCreated {
+		t.Fatalf("expected 201 Created, got %d (body: %s)", recPost.Code, recPost.Body.String())
+	}
+	if len(savedRules) != 2 {
+		t.Fatalf("expected saveFn to receive 2 rules, got %d", len(savedRules))
+	}
+	if len(engine.Rules()) != 2 {
+		t.Fatalf("expected engine to have 2 rules, got %d", len(engine.Rules()))
+	}
+
+	// 3. POST /api/v1/rules (Duplicate Name -> 409 Conflict)
+	reqDup := httptest.NewRequest(http.MethodPost, "/api/v1/rules", bytes.NewReader(payload))
+	recDup := httptest.NewRecorder()
+	srv.httpServer.Handler.ServeHTTP(recDup, reqDup)
+
+	if recDup.Code != http.StatusConflict {
+		t.Fatalf("expected 409 Conflict for duplicate rule, got %d", recDup.Code)
+	}
+
+	// 4. POST /api/v1/rules (Invalid Rule -> 400 Bad Request)
+	badRule := config.Rule{
+		Name:       "bad",
+		MetricType: "INVALID_METRIC",
+	}
+	badPayload, _ := json.Marshal(badRule)
+	reqBad := httptest.NewRequest(http.MethodPost, "/api/v1/rules", bytes.NewReader(badPayload))
+	recBad := httptest.NewRecorder()
+	srv.httpServer.Handler.ServeHTTP(recBad, reqBad)
+
+	if recBad.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 Bad Request for invalid rule, got %d", recBad.Code)
+	}
+
+	// 5. DELETE /api/v1/rules/new-mem
+	reqDel := httptest.NewRequest(http.MethodDelete, "/api/v1/rules/new-mem", nil)
+	recDel := httptest.NewRecorder()
+	srv.httpServer.Handler.ServeHTTP(recDel, reqDel)
+
+	if recDel.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK for delete, got %d (body: %s)", recDel.Code, recDel.Body.String())
+	}
+	if len(savedRules) != 1 || savedRules[0].Name != "initial-cpu" {
+		t.Fatalf("expected saveFn to receive 1 remaining rule, got %v", savedRules)
+	}
+
+	// 6. DELETE /api/v1/rules/non-existent (404 Not Found)
+	reqDel404 := httptest.NewRequest(http.MethodDelete, "/api/v1/rules/non-existent", nil)
+	recDel404 := httptest.NewRecorder()
+	srv.httpServer.Handler.ServeHTTP(recDel404, reqDel404)
+
+	if recDel404.Code != http.StatusNotFound {
+		t.Fatalf("expected 404 Not Found for non-existent rule, got %d", recDel404.Code)
+	}
+}
+
 
 
