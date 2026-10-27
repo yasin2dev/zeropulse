@@ -57,7 +57,12 @@ export function useEdgeTelemetry(enabled: boolean = true) {
 
       if (logsRes.status === 'fulfilled' && logsRes.value.ok) {
         const data = await logsRes.value.json();
-        if (Array.isArray(data.entries)) setAuditLogs(data.entries);
+        const logsList = Array.isArray(data.logs)
+          ? data.logs
+          : Array.isArray(data.entries)
+          ? data.entries
+          : [];
+        setAuditLogs(logsList);
       }
 
       setLastUpdated(new Date());

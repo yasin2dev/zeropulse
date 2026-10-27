@@ -69,3 +69,33 @@ export interface AuthStatus {
     role: string;
   };
 }
+
+export type MetricType =
+  | 'CPU_PERCENT'
+  | 'MEM_PERCENT'
+  | 'CPU_THROTTLED_PERIODS'
+  | 'NET_RX_BYTES'
+  | 'NET_TX_BYTES';
+
+export type RuleOperator = 'GT' | 'GTE';
+
+export type RuleAction = 'RESTART' | 'NOTIFY' | 'SCALE';
+
+export interface CustomRule {
+  name: string;
+  metric_type: MetricType;
+  operator: RuleOperator;
+  threshold: number;
+  consecutive_periods: number;
+  action: RuleAction;
+  cooldown_seconds: number;
+  container_filter: string;
+}
+
+export interface RulesResponse {
+  count: number;
+  dry_run: boolean;
+  config_path: string;
+  rules: CustomRule[];
+}
+

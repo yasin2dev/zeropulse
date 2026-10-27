@@ -197,6 +197,7 @@ export const App: React.FC = () => {
             dryRun={dryRun}
             onToggleDryRun={toggleDryRun}
             actionLoading={actionLoading}
+            currentUser={currentUser}
           />
         )}
 

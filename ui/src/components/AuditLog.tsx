@@ -28,6 +28,7 @@ export const AuditLog: React.FC<AuditLogProps> = ({ logs }) => {
       if (filter === 'anomalies') {
         return (
           log.status === 'TRIGGERED' ||
+          log.status === 'DRY_RUN_SKIPPED' ||
           log.status === 'FAILED' ||
           log.status === 'REMEDIATION_FAILED'
         );
@@ -79,7 +80,7 @@ export const AuditLog: React.FC<AuditLogProps> = ({ logs }) => {
             if (log.status === 'ACTION_EXECUTED' || log.status === 'MANUAL_RESTART') {
               tagColor = 'var(--status-ok-fg)';
               tagBg = 'var(--status-ok-bg)';
-            } else if (log.status === 'TRIGGERED') {
+            } else if (log.status === 'TRIGGERED' || log.status === 'DRY_RUN_SKIPPED') {
               tagColor = 'var(--status-warn-fg)';
               tagBg = 'var(--status-warn-bg)';
             } else if (log.status === 'FAILED' || log.status === 'REMEDIATION_FAILED') {
