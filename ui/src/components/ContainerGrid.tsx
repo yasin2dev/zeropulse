@@ -2,7 +2,6 @@ import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-  faCube,
   faMagnifyingGlass,
   faRotateRight,
   faCircleCheck,
@@ -14,20 +13,23 @@ import { ContainerCard } from '../types';
 import { ConfirmationModal } from './ConfirmationModal';
 import { formatBytes } from '../i18n';
 
+export type WorkloadView = 'all' | 'attention' | 'healthy';
+
 interface ContainerGridProps {
+  view: WorkloadView;
   containers: ContainerCard[];
   onRestartContainer: (id: string) => Promise<{ success: boolean; message?: string }>;
   actionLoading: boolean;
 }
 
 export const ContainerGrid: React.FC<ContainerGridProps> = ({
+  view,
   containers,
   onRestartContainer,
   actionLoading,
 }) => {
   const { t } = useTranslation();
   const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState<'all' | 'unhealthy' | 'healthy'>('all');
   const [selectedForRestart, setSelectedForRestart] = useState<ContainerCard | null>(null);
   const [feedbackMsg, setFeedbackMsg] = useState<{ text: string; isError: boolean } | null>(null);
 
@@ -40,15 +42,15 @@ export const ContainerGrid: React.FC<ContainerGridProps> = ({
 
       if (!matchesSearch) return false;
 
-      if (filter === 'unhealthy') {
+      if (view === 'attention') {
         return c.health_status === 'warning' || c.health_status === 'critical';
       }
-      if (filter === 'healthy') {
+      if (view === 'healthy') {
         return c.health_status === 'ok' || c.health_status === 'cooldown';
       }
       return true;
     });
-  }, [containers, search, filter]);
+  }, [containers, search, view]);
 
   const handleConfirmRestart = async () => {
     if (!selectedForRestart) return;
@@ -72,13 +74,9 @@ export const ContainerGrid: React.FC<ContainerGridProps> = ({
   };
 
   return (
-    <div>
+    <div className="screen-stack">
       <div className="section-header">
-        <h2 className="section-title">
-          <FontAwesomeIcon icon={faCube} style={{ opacity: 0.8 }} />
-          <span>{t('containers.title')}</span>
-          <span className="section-count">{t('containers.total_count', { count: containers.length })}</span>
-        </h2>
+        <span className="section-count">{t('containers.total_count', { count: filteredContainers.length })}</span>
 
         <div className="controls-group">
           <div className="search-wrapper">
@@ -91,33 +89,6 @@ export const ContainerGrid: React.FC<ContainerGridProps> = ({
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-
-          <button
-            className={`filter-btn ${filter === 'all' ? 'active' : ''}`}
-            onClick={() => setFilter('all')}
-          >
-            {t('containers.filter_all', { count: containers.length })}
-          </button>
-          <button
-            className={`filter-btn ${filter === 'unhealthy' ? 'active' : ''}`}
-            onClick={() => setFilter('unhealthy')}
-          >
-            {t('containers.filter_unhealthy', {
-              count: containers.filter(
-                (c) => c.health_status === 'warning' || c.health_status === 'critical'
-              ).length,
-            })}
-          </button>
-          <button
-            className={`filter-btn ${filter === 'healthy' ? 'active' : ''}`}
-            onClick={() => setFilter('healthy')}
-          >
-            {t('containers.filter_healthy', {
-              count: containers.filter(
-                (c) => c.health_status === 'ok' || c.health_status === 'cooldown'
-              ).length,
-            })}
-          </button>
         </div>
       </div>
 
@@ -146,6 +117,7 @@ export const ContainerGrid: React.FC<ContainerGridProps> = ({
               <th>{t('containers.th_cpu')}</th>
               <th>{t('containers.th_mem')}</th>
               <th>{t('containers.th_throttling')}</th>
+              <th>{t('containers.th_network')}</th>
               <th>{t('containers.th_status')}</th>
               <th>{t('containers.th_action')}</th>
             </tr>
@@ -153,7 +125,7 @@ export const ContainerGrid: React.FC<ContainerGridProps> = ({
           <tbody>
             {filteredContainers.length === 0 ? (
               <tr>
-                <td colSpan={6} className="empty-state">
+                <td colSpan={7} className="empty-state">
                   {t('containers.empty')}
                 </td>
               </tr>
@@ -240,6 +212,11 @@ export const ContainerGrid: React.FC<ContainerGridProps> = ({
                           </span>
                         )}
                       </div>
+                    </td>
+
+                    <td className="net-cell">
+                      <span>↓ {formatBytes(c.net_rx_bytes)}</span>
+                      <span>↑ {formatBytes(c.net_tx_bytes)}</span>
                     </td>
 
                     <td>

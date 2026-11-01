@@ -5,7 +5,33 @@ import {
   AuditEntry,
   ConnectionState,
   MetricsEventPayload,
+  MetricsSample,
+  TelemetrySample,
 } from '../types';
+
+const HISTORY_WINDOW_MS = 60 * 60 * 1000;
+
+function toTelemetrySample(sample: MetricsSample): TelemetrySample {
+  return {
+    time: new Date(sample.timestamp).getTime(),
+    cpuPercent: sample.cpu_percent,
+    memPercent: sample.mem_percent,
+    netRxRate: sample.net_rx_bytes_per_sec,
+    netTxRate: sample.net_tx_bytes_per_sec,
+  };
+}
+
+/** Merges by timestamp: a backfill response and live SSE frames can overlap in either order. */
+function mergeSamples(current: TelemetrySample[], incoming: TelemetrySample[]): TelemetrySample[] {
+  const byTime = new Map(current.map((s) => [s.time, s]));
+  for (const s of incoming) {
+    if (!Number.isNaN(s.time)) byTime.set(s.time, s);
+  }
+  const merged = [...byTime.values()].sort((a, b) => a.time - b.time);
+  if (merged.length === 0) return merged;
+  const cutoff = merged[merged.length - 1].time - HISTORY_WINDOW_MS;
+  return merged.filter((s) => s.time >= cutoff);
+}
 
 const INITIAL_SYSTEM: SystemOverview = {
   mode: 'docker',
@@ -25,8 +51,22 @@ export function useEdgeTelemetry(enabled: boolean = true) {
   const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected');
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [actionLoading, setActionLoading] = useState<boolean>(false);
+  const [history, setHistory] = useState<TelemetrySample[]>([]);
 
   const eventSourceRef = useRef<EventSource | null>(null);
+
+  // Loads what the agent recorded while this page wasn't listening (first load or stream outage).
+  const fetchHistory = useCallback(async () => {
+    try {
+      const res = await fetch('/api/v1/metrics/history');
+      if (!res.ok) return;
+      const data: { samples?: MetricsSample[] } = await res.json();
+      const samples = (data.samples ?? []).map(toTelemetrySample);
+      setHistory((prev) => mergeSamples(prev, samples));
+    } catch {
+      // Live frames keep the charts moving; the next reconnect retries the backfill.
+    }
+  }, []);
 
   // Initial data bootstrap via REST
   const fetchInitialData = useCallback(async () => {
@@ -75,6 +115,7 @@ export function useEdgeTelemetry(enabled: boolean = true) {
   useEffect(() => {
     if (!enabled) {
       setConnectionState('disconnected');
+      setHistory([]);
       if (eventSourceRef.current) {
         eventSourceRef.current.close();
         eventSourceRef.current = null;
@@ -93,6 +134,7 @@ export function useEdgeTelemetry(enabled: boolean = true) {
 
       es.onopen = () => {
         setConnectionState('connected');
+        fetchHistory();
       };
 
       es.addEventListener('connected', () => {
@@ -109,6 +151,10 @@ export function useEdgeTelemetry(enabled: boolean = true) {
           if (payload.system) setSystem(payload.system);
           if (payload.containers) setContainers(payload.containers);
           setLastUpdated(new Date(payload.timestamp || Date.now()));
+          const { sample } = payload;
+          if (sample) {
+            setHistory((prev) => mergeSamples(prev, [toTelemetrySample(sample)]));
+          }
           setConnectionState('connected');
         } catch (err) {
           console.error('Failed to parse metrics event', err);
@@ -141,7 +187,7 @@ export function useEdgeTelemetry(enabled: boolean = true) {
         eventSourceRef.current.close();
       }
     };
-  }, [enabled, fetchInitialData]);
+  }, [enabled, fetchInitialData, fetchHistory]);
 
   // Toggle Dry-Run
   const toggleDryRun = useCallback(async (newVal: boolean): Promise<boolean> => {
@@ -190,6 +236,11 @@ export function useEdgeTelemetry(enabled: boolean = true) {
     []
   );
 
+  const refresh = useCallback(() => {
+    fetchInitialData();
+    fetchHistory();
+  }, [fetchInitialData, fetchHistory]);
+
   return {
     system,
     containers,
@@ -197,9 +248,10 @@ export function useEdgeTelemetry(enabled: boolean = true) {
     dryRun,
     connectionState,
     lastUpdated,
+    history,
     actionLoading,
     toggleDryRun,
     restartContainer,
-    refresh: fetchInitialData,
+    refresh,
   };
 }

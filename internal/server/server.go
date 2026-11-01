@@ -78,6 +78,8 @@ type MetricsEventPayload struct {
 	Timestamp  time.Time       `json:"timestamp"`
 	System     SystemOverview  `json:"system"`
 	Containers []ContainerCard `json:"containers"`
+	// Sample is this frame's history point, so live charts and /metrics/history agree exactly.
+	Sample *MetricsSample `json:"sample,omitempty"`
 }
 
 // Server exposes the internal REST API and real-time SSE stream for the Edge UI.
@@ -93,6 +95,7 @@ type Server struct {
 	saveRules     func(rules []config.Rule) error
 	latestPayload *MetricsEventPayload
 	auditLog      *AuditLog
+	history       *MetricsHistory
 	sseHub        *SSEHub
 	logger        *slog.Logger
 	httpServer    *http.Server
@@ -116,6 +119,7 @@ func NewServer(cfg ServerConfig, env collector.Environment, logger *slog.Logger)
 		configPath: cfg.ConfigPath,
 		saveRules:  cfg.SaveRules,
 		auditLog:   audit,
+		history:    NewMetricsHistory(metricsHistoryCapacity),
 		sseHub:     hub,
 		logger:     logger,
 	}
@@ -127,6 +131,7 @@ func NewServer(cfg ServerConfig, env collector.Environment, logger *slog.Logger)
 	mux.HandleFunc("/api/v1/containers", s.handleContainers)
 	mux.HandleFunc("/api/v1/config/dry-run", s.handleDryRun)
 	mux.HandleFunc("/api/v1/audit/logs", s.handleAuditLogs)
+	mux.HandleFunc("/api/v1/metrics/history", s.handleMetricsHistory)
 	mux.HandleFunc("/api/v1/rules", s.handleRules)
 	mux.HandleFunc("/api/v1/rules/", s.handleRuleActions)
 	mux.HandleFunc("/api/v1/containers/", s.handleContainerActions) // matches /api/v1/containers/{id}/restart
@@ -193,6 +198,11 @@ func (s *Server) SetDryRun(val bool) {
 
 // PushMetrics updates the server cache with the latest collector cycle and broadcasts SSE.
 func (s *Server) PushMetrics(payload MetricsEventPayload) {
+	// Collectors don't know about the audit log; without this every SSE frame reports zero stress.
+	payload.System.StressIndex1m = s.auditLog.CalculateStressIndex()
+	sample := s.history.Record(payload)
+	payload.Sample = &sample
+
 	s.mu.Lock()
 	s.latestPayload = &payload
 	s.mu.Unlock()
@@ -353,6 +363,16 @@ func (s *Server) handleAuditLogs(w http.ResponseWriter, r *http.Request) {
 		"total_count":     len(logs),
 		"logs":            logs,
 		"entries":         logs,
+	})
+}
+
+func (s *Server) handleMetricsHistory(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"samples": s.history.Snapshot(),
 	})
 }
 

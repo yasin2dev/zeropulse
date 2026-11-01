@@ -1,17 +1,28 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useEdgeTelemetry } from './hooks/useEdgeTelemetry';
-import { Navbar, ActiveTab } from './components/Navbar';
-import { PulseBar } from './components/PulseBar';
-import { ContainerGrid } from './components/ContainerGrid';
+import { useHashRoute } from './hooks/useHashRoute';
+import { Sidebar } from './components/Sidebar';
+import { Topbar } from './components/Topbar';
+import { Dashboard } from './components/dashboard/Dashboard';
+import { ContainerGrid, WorkloadView } from './components/ContainerGrid';
 import { AuditLog } from './components/AuditLog';
-import { EngineSettings } from './components/EngineSettings';
+import { RemediationPolicy } from './components/automation/RemediationPolicy';
+import { CustomRules } from './components/automation/CustomRules';
+import { BaselineThresholds } from './components/automation/BaselineThresholds';
+import { ApiEndpoints } from './components/automation/ApiEndpoints';
 import { UserManagement } from './components/UserManagement';
 import { StatusBar } from './components/StatusBar';
 import { SetupWizard } from './components/SetupWizard';
 import { LoginView } from './components/LoginView';
 import { AuthStatus } from './types';
+import { DEFAULT_ROUTE, isRouteAllowed } from './navigation';
+import '@fontsource-variable/plus-jakarta-sans';
 import './styles/dashboard.css';
+import './styles/shell.css';
+import './styles/overview.css';
+
+const SIDEBAR_STORAGE_KEY = 'zeropulse_sidebar_collapsed';
 
 export const App: React.FC = () => {
   const { t } = useTranslation();
@@ -23,7 +34,11 @@ export const App: React.FC = () => {
     return 'dark';
   });
 
-  const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
+  const requestedRoute = useHashRoute();
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(
+    () => localStorage.getItem(SIDEBAR_STORAGE_KEY) === 'true'
+  );
+  const [drawerOpen, setDrawerOpen] = useState<boolean>(false);
   const [authStatus, setAuthStatus] = useState<AuthStatus | null>(null);
   const [authChecking, setAuthChecking] = useState<boolean>(true);
 
@@ -31,6 +46,19 @@ export const App: React.FC = () => {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('zeropulse_theme', theme);
   }, [theme]);
+
+  useEffect(() => {
+    localStorage.setItem(SIDEBAR_STORAGE_KEY, String(sidebarCollapsed));
+  }, [sidebarCollapsed]);
+
+  useEffect(() => {
+    if (!drawerOpen) return;
+    const closeOnEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setDrawerOpen(false);
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [drawerOpen]);
 
   const handleToggleTheme = () => {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
@@ -99,6 +127,7 @@ export const App: React.FC = () => {
     dryRun,
     connectionState,
     lastUpdated,
+    history,
     actionLoading,
     toggleDryRun,
     restartContainer,
@@ -139,86 +168,98 @@ export const App: React.FC = () => {
   }
 
   const currentUser = authStatus?.user || { username: 'admin', role: 'admin' };
-  const unhealthyCount = containers.filter(
+  const attentionCount = containers.filter(
     (c) => c.health_status === 'warning' || c.health_status === 'critical'
   ).length;
+  const route = isRouteAllowed(requestedRoute, currentUser.role === 'admin')
+    ? requestedRoute
+    : DEFAULT_ROUTE;
+
+  const workloads = (view: WorkloadView) => (
+    <ContainerGrid
+      view={view}
+      containers={containers}
+      onRestartContainer={restartContainer}
+      actionLoading={actionLoading}
+    />
+  );
 
   return (
-    <div className="dashboard-container" data-theme={theme}>
-      {/* Top Appliance Header with Favicon Logo, Telemetry Strip, Segmented Theme Switcher & Tabs */}
-      <Navbar
-        mode={system.mode}
-        connectionState={connectionState}
-        dryRun={dryRun}
-        totalContainers={containers.length}
-        unhealthyCount={unhealthyCount}
-        totalLogs={auditLogs.length}
-        theme={theme}
-        activeTab={activeTab}
+    <div className={`app-shell ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+      <Sidebar
+        route={route}
         currentUser={currentUser}
-        onTabChange={setActiveTab}
-        onToggleTheme={handleToggleTheme}
-        onRefresh={refresh}
+        counts={{
+          containers: containers.length,
+          attention: attentionCount,
+          events: auditLogs.length,
+        }}
+        collapsed={sidebarCollapsed}
+        drawerOpen={drawerOpen}
+        onToggleCollapsed={() => setSidebarCollapsed((prev) => !prev)}
+        onCloseDrawer={() => setDrawerOpen(false)}
         onLogout={handleLogout}
-        actionLoading={actionLoading}
       />
+      {drawerOpen && <div className="drawer-scrim" onClick={() => setDrawerOpen(false)} />}
 
-      {/* Main Appliance Content Based on Active Tab */}
-      <main className="appliance-main-content">
-        {activeTab === 'dashboard' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-            <PulseBar
+      <div className="app-main">
+        <Topbar
+          route={route}
+          connectionState={connectionState}
+          theme={theme}
+          actionLoading={actionLoading}
+          onOpenDrawer={() => setDrawerOpen(true)}
+          onToggleTheme={handleToggleTheme}
+          onRefresh={refresh}
+        />
+
+        <main className="app-content">
+          {route === 'dashboard' && (
+            <Dashboard
               system={system}
+              containers={containers}
+              auditLogs={auditLogs}
+              history={history}
+              dryRun={dryRun}
+              connectionState={connectionState}
+              lastUpdated={lastUpdated}
+              actionLoading={actionLoading}
+              onToggleDryRun={toggleDryRun}
+            />
+          )}
+
+          {route === 'workloads/all' && workloads('all')}
+          {route === 'workloads/attention' && workloads('attention')}
+          {route === 'workloads/healthy' && workloads('healthy')}
+
+          {route === 'events/all' && <AuditLog logs={auditLogs} view="all" />}
+          {route === 'events/remediations' && <AuditLog logs={auditLogs} view="remediations" />}
+          {route === 'events/anomalies' && <AuditLog logs={auditLogs} view="anomalies" />}
+
+          {route === 'automation/policy' && (
+            <RemediationPolicy
               dryRun={dryRun}
               onToggleDryRun={toggleDryRun}
               actionLoading={actionLoading}
             />
+          )}
+          {route === 'automation/rules' && <CustomRules currentUser={currentUser} />}
+          {route === 'automation/thresholds' && <BaselineThresholds />}
 
-            <ContainerGrid
-              containers={containers}
-              onRestartContainer={restartContainer}
-              actionLoading={actionLoading}
-            />
+          {route === 'system/users' && (
+            <UserManagement currentUser={currentUser} actionLoading={actionLoading} />
+          )}
+          {route === 'system/api' && <ApiEndpoints />}
+        </main>
 
-            <AuditLog logs={auditLogs} />
-          </div>
-        )}
-
-        {activeTab === 'workloads' && (
-          <ContainerGrid
-            containers={containers}
-            onRestartContainer={restartContainer}
-            actionLoading={actionLoading}
-          />
-        )}
-
-        {activeTab === 'audit' && <AuditLog logs={auditLogs} />}
-
-        {activeTab === 'settings' && (
-          <EngineSettings
-            dryRun={dryRun}
-            onToggleDryRun={toggleDryRun}
-            actionLoading={actionLoading}
-            currentUser={currentUser}
-          />
-        )}
-
-        {activeTab === 'users' && (
-          <UserManagement
-            currentUser={currentUser}
-            actionLoading={actionLoading}
-          />
-        )}
-      </main>
-
-      {/* Industrial Chassis Status Bar Footer */}
-      <StatusBar
-        mode={system.mode}
-        connectionState={connectionState}
-        dryRun={dryRun}
-        stressIndex={system.stress_index_1m || 0}
-        lastUpdated={lastUpdated}
-      />
+        <StatusBar
+          mode={system.mode}
+          connectionState={connectionState}
+          dryRun={dryRun}
+          stressIndex={system.stress_index_1m || 0}
+          lastUpdated={lastUpdated}
+        />
+      </div>
     </div>
   );
 };

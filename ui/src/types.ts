@@ -32,6 +32,26 @@ export interface MetricsEventPayload {
   timestamp: string;
   system: SystemOverview;
   containers: ContainerCard[];
+  sample?: MetricsSample;
+}
+
+/** A history point as sent by the agent (SSE `sample` and /metrics/history). */
+export interface MetricsSample {
+  timestamp: string;
+  cpu_percent: number;
+  mem_percent: number;
+  net_rx_bytes_per_sec: number | null;
+  net_tx_bytes_per_sec: number | null;
+}
+
+/** One chart point. */
+export interface TelemetrySample {
+  time: number;
+  cpuPercent: number;
+  memPercent: number;
+  /** Bytes per second across all containers; null when the agent had no earlier frame. */
+  netRxRate: number | null;
+  netTxRate: number | null;
 }
 
 export interface AuditEntry {
