@@ -193,6 +193,9 @@ func (s *Server) SetDryRun(val bool) {
 
 // PushMetrics updates the server cache with the latest collector cycle and broadcasts SSE.
 func (s *Server) PushMetrics(payload MetricsEventPayload) {
+	// Collectors don't know about the audit log; without this every SSE frame reports zero stress.
+	payload.System.StressIndex1m = s.auditLog.CalculateStressIndex()
+
 	s.mu.Lock()
 	s.latestPayload = &payload
 	s.mu.Unlock()

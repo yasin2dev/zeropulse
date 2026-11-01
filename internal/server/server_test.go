@@ -133,6 +133,21 @@ func TestPushMetricsAndContainers(t *testing.T) {
 	}
 }
 
+func TestPushMetricsIncludesStressIndex(t *testing.T) {
+	cfg := ServerConfig{Addr: "127.0.0.1:0"}
+	srv := NewServer(cfg, collector.EnvDocker, newTestLogger())
+
+	for i := 0; i < 3; i++ {
+		srv.auditLog.Add(AuditEntry{ID: "evt", Timestamp: time.Now().UTC(), Status: "TRIGGERED"})
+	}
+	srv.PushMetrics(MetricsEventPayload{Timestamp: time.Now().UTC()})
+
+	// 3 anomalies / 5 = 0.6; this payload is what SSE clients receive.
+	if got := srv.latestPayload.System.StressIndex1m; got < 0.59 || got > 0.61 {
+		t.Errorf("expected pushed stress index ~0.6, got %f", got)
+	}
+}
+
 func TestAuthMiddleware(t *testing.T) {
 	cfg := ServerConfig{
 		Addr:        "127.0.0.1:0",
