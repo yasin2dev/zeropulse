@@ -228,6 +228,12 @@ curl -X POST http://localhost:9180/api/v1/containers/<CONTAINER_ID_VEYA_NAME>/re
 curl -s http://localhost:9180/api/v1/audit/logs | jq .
 ```
 
+### 8. Metrik Geçmişi (Dashboard Grafikleri)
+```bash
+curl -s http://localhost:9180/api/v1/metrics/history | jq '.samples | length'
+```
+*Son 1 saat (5 saniyede bir, en fazla 720 örnek) ajanın belleğinde tutulur; ajan yeniden başlayınca sıfırlanır.*
+
 ---
 
 ## 4. Anomali ve Stres Testi Simülasyonu
