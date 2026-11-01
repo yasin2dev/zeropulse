@@ -7,6 +7,8 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -219,6 +221,71 @@ func TestEmbeddedUIServing(t *testing.T) {
 
 	if recSPA.Code != http.StatusOK {
 		t.Fatalf("expected 200 OK for SPA fallback route, got %d", recSPA.Code)
+	}
+}
+
+func TestUIDirServing(t *testing.T) {
+	tmpDir := t.TempDir()
+	customHTML := "<html><body>Disk Mode Live Dev</body></html>"
+	if err := os.WriteFile(filepath.Join(tmpDir, "index.html"), []byte(customHTML), 0644); err != nil {
+		t.Fatalf("failed to write test file: %v", err)
+	}
+
+	cfg := ServerConfig{
+		Addr:  "127.0.0.1:0",
+		UIDir: tmpDir,
+	}
+	srv := NewServer(cfg, collector.EnvStandalone, newTestLogger())
+
+	req := httptest.NewRequest(http.MethodGet, "/arbitrary-spa-path", nil)
+	rec := httptest.NewRecorder()
+	srv.httpServer.Handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK, got %d", rec.Code)
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte("Disk Mode Live Dev")) {
+		t.Errorf("expected custom disk HTML, got: %s", rec.Body.String())
+	}
+}
+
+func TestUIProxyServing(t *testing.T) {
+	// Mock Vite dev server
+	mockVite := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("<h1>Vite Dev Server Live HMR</h1>"))
+	}))
+	defer mockVite.Close()
+
+	cfg := ServerConfig{
+		Addr:       "127.0.0.1:0",
+		UIProxyURL: mockVite.URL,
+	}
+	srv := NewServer(cfg, collector.EnvStandalone, newTestLogger())
+
+	// 1. UI request should be proxied to mock Vite
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rec := httptest.NewRecorder()
+	srv.httpServer.Handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK from proxy, got %d", rec.Code)
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte("Vite Dev Server Live HMR")) {
+		t.Errorf("expected vite dev content, got: %s", rec.Body.String())
+	}
+
+	// 2. API request should NOT be proxied to Vite, should be handled by Go
+	apiReq := httptest.NewRequest(http.MethodGet, "/api/v1/health", nil)
+	apiRec := httptest.NewRecorder()
+	srv.httpServer.Handler.ServeHTTP(apiRec, apiReq)
+
+	if apiRec.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK for /api/v1/health, got %d", apiRec.Code)
+	}
+	if !bytes.Contains(apiRec.Body.Bytes(), []byte("healthy")) {
+		t.Errorf("expected healthy JSON response, got: %s", apiRec.Body.String())
 	}
 }
 

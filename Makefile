@@ -1,6 +1,17 @@
-.PHONY: all build ui agent test clean install update uninstall
+.PHONY: all build ui agent test clean install update uninstall dev dev-ui ui-dev ui-watch
 
 all: build
+
+dev:
+	./scripts/dev.sh
+
+dev-ui:
+	cd ui && npm run dev
+
+ui-dev: dev-ui
+
+ui-watch:
+	cd ui && npx vite build --watch
 
 ui:
 	cd ui && npm run build

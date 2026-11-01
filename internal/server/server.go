@@ -41,6 +41,8 @@ type ServerConfig struct {
 	RuleEngine  *ruleengine.RuleEngine
 	ConfigPath  string
 	SaveRules   func(rules []config.Rule) error
+	UIDir       string
+	UIProxyURL  string
 }
 
 // SystemOverview summarizes the overall edge host and container status.
@@ -138,11 +140,11 @@ func NewServer(cfg ServerConfig, env collector.Environment, logger *slog.Logger)
 	mux.HandleFunc("/api/v1/users", s.handleUsers)
 	mux.HandleFunc("/api/v1/users/", s.handleUserActions)
 
-	uiHandler, err := newUIHandler()
+	uiHandler, err := newUIHandler(cfg)
 	if err == nil {
 		mux.Handle("/", uiHandler)
 	} else if logger != nil {
-		logger.Warn("embedded ui assets not available", "error", err)
+		logger.Warn("ui assets not available", "error", err)
 	}
 
 	handler := s.corsMiddleware(s.authMiddleware(mux))

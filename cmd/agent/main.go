@@ -40,6 +40,8 @@ func main() {
 		resetPassword string
 		resetUsername string
 		showVersion   bool
+		uiDir         string
+		uiProxy       string
 	)
 
 	defaultCPU := envFloatOrDefault("ZEROPULSE_CPU_THRESHOLD", engine.DefaultCPUThreshold)
@@ -52,6 +54,8 @@ func main() {
 	defaultPass := os.Getenv("ZEROPULSE_AUTH_PASS")
 	defaultToken := os.Getenv("ZEROPULSE_API_TOKEN")
 	defaultDataDir := envStringOrDefault("ZEROPULSE_DATA_DIR", "./data")
+	defaultUIDir := os.Getenv("ZEROPULSE_UI_DIR")
+	defaultUIProxy := os.Getenv("ZEROPULSE_UI_PROXY")
 
 	flag.StringVar(&configPath, "config", "", "Path to YAML or JSON rule configuration file")
 	flag.BoolVar(&dryRun, "dry-run", defaultDryRun, "Run in dry-run mode (log actions without executing remediation)")
@@ -66,6 +70,8 @@ func main() {
 	flag.StringVar(&apiToken, "api-token", defaultToken, "Bearer API token for automated integration")
 	flag.StringVar(&resetPassword, "reset-password", "", "Set or reset the password for an operator/admin account, then exit")
 	flag.StringVar(&resetUsername, "reset-user", "admin", "Username whose password should be reset (default: admin)")
+	flag.StringVar(&uiDir, "ui-dir", defaultUIDir, "Serve UI static files from disk instead of embedded assets (e.g. ./ui/dist)")
+	flag.StringVar(&uiProxy, "ui-proxy", defaultUIProxy, "Reverse proxy UI requests to live Vite dev server (e.g. http://localhost:3000)")
 	flag.BoolVar(&showVersion, "version", false, "Print version and exit")
 	flag.Parse()
 
@@ -156,6 +162,8 @@ func main() {
 		Store:       store,
 		RuleEngine:  customRuleEngine,
 		ConfigPath:  activeConfigPath,
+		UIDir:       uiDir,
+		UIProxyURL:  uiProxy,
 		SaveRules: func(rules []config.Rule) error {
 			return loader.Save(activeConfigPath, rules)
 		},
