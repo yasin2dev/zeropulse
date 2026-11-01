@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-  faUsers,
   faUserPlus,
   faUserShield,
   faEye,
@@ -184,8 +183,6 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
     <div className="user-management-container">
       <div className="users-toolbar">
         <div className="users-title-block">
-          <FontAwesomeIcon icon={faUsers} style={{ opacity: 0.8 }} />
-          <h2 className="users-title">{t('users.title')}</h2>
           <span className="section-count">{t('users.count', { count: users.length })}</span>
         </div>
 

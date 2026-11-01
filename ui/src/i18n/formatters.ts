@@ -27,6 +27,20 @@ export function formatTime(
   });
 }
 
+export function formatClock(date: Date | number, lang?: string): string {
+  const d = date instanceof Date ? date : new Date(date);
+  return d.toLocaleTimeString(getLocale(lang), { hour: '2-digit', minute: '2-digit', hour12: false });
+}
+
+/** Locale-aware percentage from a 0–100 value: `34.2%` in English, `%34,2` in Turkish. */
+export function formatPercent(value: number, lang?: string, fractionDigits: number = 1): string {
+  return new Intl.NumberFormat(getLocale(lang), {
+    style: 'percent',
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
+  }).format(value / 100);
+}
+
 export function formatDateTime(
   date: Date | string | number | null | undefined,
   lang?: string
@@ -53,6 +67,10 @@ export function formatBytes(bytes: number): string {
   const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
+}
+
+export function formatByteRate(bytesPerSecond: number): string {
+  return `${formatBytes(Math.max(0, Math.round(bytesPerSecond)))}/s`;
 }
 
 export function formatNumber(

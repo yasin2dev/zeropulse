@@ -1,74 +1,28 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-  faListCheck,
   faClock,
   faShieldHalved,
   faBolt,
 } from '@fortawesome/free-solid-svg-icons';
 import { AuditEntry } from '../types';
 import { formatTime } from '../i18n';
+import { eventTone, EventView, matchesEventView, TONE_STYLES } from '../utils/audit';
 
 interface AuditLogProps {
   logs: AuditEntry[];
+  view: EventView;
 }
 
-export const AuditLog: React.FC<AuditLogProps> = ({ logs }) => {
+export const AuditLog: React.FC<AuditLogProps> = ({ logs, view }) => {
   const { t, i18n } = useTranslation();
-  const [filter, setFilter] = useState<'all' | 'actions' | 'anomalies'>('all');
-
-  const filteredLogs = useMemo(() => {
-    return logs.filter((log) => {
-      if (filter === 'actions') {
-        return (
-          log.action === 'RESTART' ||
-          log.action === 'RESTART_SUGGESTED' ||
-          log.status === 'ACTION_EXECUTED' ||
-          log.status === 'MANUAL_RESTART'
-        );
-      }
-      if (filter === 'anomalies') {
-        return (
-          log.status === 'TRIGGERED' ||
-          log.status === 'DRY_RUN_SKIPPED' ||
-          log.status === 'FAILED' ||
-          log.status === 'REMEDIATION_FAILED'
-        );
-      }
-      return true;
-    });
-  }, [logs, filter]);
+  const filteredLogs = useMemo(() => logs.filter((log) => matchesEventView(log, view)), [logs, view]);
 
   return (
-    <div>
+    <div className="screen-stack">
       <div className="section-header">
-        <h2 className="section-title">
-          <FontAwesomeIcon icon={faListCheck} style={{ opacity: 0.8 }} />
-          <span>{t('audit.title')}</span>
-          <span className="section-count">{t('audit.count', { count: logs.length })}</span>
-        </h2>
-
-        <div className="controls-group">
-          <button
-            className={`filter-btn ${filter === 'all' ? 'active' : ''}`}
-            onClick={() => setFilter('all')}
-          >
-            {t('audit.filter_all', { count: logs.length })}
-          </button>
-          <button
-            className={`filter-btn ${filter === 'actions' ? 'active' : ''}`}
-            onClick={() => setFilter('actions')}
-          >
-            {t('audit.filter_actions')}
-          </button>
-          <button
-            className={`filter-btn ${filter === 'anomalies' ? 'active' : ''}`}
-            onClick={() => setFilter('anomalies')}
-          >
-            {t('audit.filter_anomalies')}
-          </button>
-        </div>
+        <span className="section-count">{t('audit.count', { count: filteredLogs.length })}</span>
       </div>
 
       <div className="audit-log-container">
@@ -77,19 +31,7 @@ export const AuditLog: React.FC<AuditLogProps> = ({ logs }) => {
         ) : (
           filteredLogs.map((log) => {
             const timeStr = formatTime(log.timestamp, i18n.language);
-            let tagColor = 'var(--text-muted)';
-            let tagBg = 'var(--surface-2)';
-
-            if (log.status === 'ACTION_EXECUTED' || log.status === 'MANUAL_RESTART') {
-              tagColor = 'var(--status-ok-fg)';
-              tagBg = 'var(--status-ok-bg)';
-            } else if (log.status === 'TRIGGERED' || log.status === 'DRY_RUN_SKIPPED') {
-              tagColor = 'var(--status-warn-fg)';
-              tagBg = 'var(--status-warn-bg)';
-            } else if (log.status === 'FAILED' || log.status === 'REMEDIATION_FAILED') {
-              tagColor = 'var(--status-danger-fg)';
-              tagBg = 'var(--status-danger-bg)';
-            }
+            const { color: tagColor, background: tagBg } = TONE_STYLES[eventTone(log)];
 
             return (
               <div key={log.id} className="audit-entry">

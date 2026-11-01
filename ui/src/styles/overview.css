@@ -1,0 +1,759 @@
+/* ==========================================================================
+   Overview screen
+   One verdict on top, one dominant trend, everything else quieter.
+   ========================================================================== */
+.dashboard-screen {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  height: 100%;
+  min-height: 860px; /* Below this the panels would crush; the content column scrolls instead. */
+}
+
+/* --------------------------------------------------------------------------
+   Headline band
+   -------------------------------------------------------------------------- */
+.headline-band {
+  display: grid;
+  grid-template-columns: minmax(280px, 5fr) minmax(0, 7fr);
+  background-color: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+}
+
+.headline-verdict {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  min-width: 0;
+}
+
+.headline-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: var(--r-sm);
+  font-size: 1.15rem;
+}
+
+.headline-icon.ok { background-color: var(--status-ok-bg); color: var(--status-ok-fg); }
+.headline-icon.warn { background-color: var(--status-warn-bg); color: var(--status-warn-fg); }
+.headline-icon.danger { background-color: var(--status-danger-bg); color: var(--status-danger-fg); }
+.headline-icon.neutral { background-color: var(--status-neutral-bg); color: var(--status-neutral-fg); }
+
+.headline-text {
+  min-width: 0;
+}
+
+.headline-title {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  color: var(--text);
+}
+
+.headline-detail {
+  margin-top: 2px;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.headline-link {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  color: inherit;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  text-decoration: none;
+}
+
+.headline-link:hover {
+  color: var(--text);
+}
+
+.headline-vitals {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-left: 1px solid var(--line);
+}
+
+.vital {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  padding: var(--space-3) var(--space-4);
+  min-width: 0;
+}
+
+.vital + .vital {
+  border-left: 1px solid var(--line);
+}
+
+.vital-label {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.vital-value {
+  font-size: var(--text-xl);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.vital-meter {
+  display: block;
+  height: 3px;
+  margin: 2px 0;
+  border-radius: var(--r-pill);
+  background-color: var(--surface-2);
+  overflow: hidden;
+}
+
+.vital-meter-fill {
+  display: block;
+  height: 100%;
+  border-radius: var(--r-pill);
+  background-color: var(--series-neutral);
+  transition: width var(--dur-base) var(--ease-state);
+}
+
+.vital-meter-fill.warn { background-color: var(--status-warn-fg); }
+.vital-meter-fill.danger { background-color: var(--status-danger-fg); }
+
+.vital-detail {
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vital-flag.warn { color: var(--status-warn-fg); font-weight: 600; }
+.vital-flag.danger { color: var(--status-danger-fg); font-weight: 600; }
+
+/* --------------------------------------------------------------------------
+   Range toolbar
+   -------------------------------------------------------------------------- */
+.dash-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.dash-toolbar-note {
+  font-size: var(--text-xs);
+  color: var(--text-dim);
+}
+
+.mini-segmented {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--r-xs);
+  background-color: var(--surface-2);
+}
+
+.mini-segmented button {
+  height: 26px;
+  padding: 0 0.6rem;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: var(--text-xs);
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+
+.mini-segmented button:hover {
+  color: var(--text);
+}
+
+.mini-segmented button.active {
+  background-color: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-sm);
+}
+
+/* --------------------------------------------------------------------------
+   Panel grid
+   -------------------------------------------------------------------------- */
+.dash-grid {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  grid-template-rows: auto minmax(0, 1fr) minmax(0, 1.6fr);
+  grid-template-areas:
+    'host host host host host host host host health health health health'
+    'host host host host host host host host policy policy policy policy'
+    'consumers consumers consumers consumers network network network network events events events events';
+}
+
+.area-host { grid-area: host; }
+.area-health { grid-area: health; }
+.area-policy { grid-area: policy; }
+.area-consumers { grid-area: consumers; }
+.area-network { grid-area: network; }
+.area-events { grid-area: events; }
+
+.dash-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+  min-height: 0;
+  padding: var(--space-4);
+  background-color: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+}
+
+.panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.panel-heading {
+  font-size: var(--text-base);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+
+.panel-sub {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.panel-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.panel-link svg {
+  font-size: 0.65rem;
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+
+.panel-link:hover {
+  color: var(--text);
+}
+
+.panel-link:hover svg {
+  transform: translateX(2px);
+}
+
+.panel-empty {
+  margin: auto 0;
+  padding: var(--space-4) 0;
+  text-align: center;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+/* --------------------------------------------------------------------------
+   Line chart
+   -------------------------------------------------------------------------- */
+.line-chart {
+  position: relative;
+  flex: 1;
+  min-height: 180px;
+  border-radius: var(--r-xs);
+}
+
+.line-chart svg {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+
+.chart-grid {
+  stroke: var(--line);
+  stroke-width: 1;
+  shape-rendering: crispEdges;
+}
+
+.chart-tick {
+  fill: var(--text-dim);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+}
+
+.chart-line {
+  fill: none;
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.chart-dot {
+  stroke: var(--surface);
+  stroke-width: 2;
+}
+
+.chart-end-label {
+  fill: var(--text);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.chart-crosshair {
+  stroke: var(--line-strong);
+  stroke-width: 1;
+  shape-rendering: crispEdges;
+}
+
+.chart-empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: var(--space-4);
+  text-align: center;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.chart-tooltip {
+  position: absolute;
+  z-index: 5;
+  min-width: 132px;
+  padding: 0.5rem 0.65rem;
+  background-color: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-xs);
+  box-shadow: var(--shadow-md);
+  pointer-events: none;
+}
+
+.chart-tooltip-time {
+  margin-bottom: 0.25rem;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+}
+
+.chart-tooltip-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  white-space: nowrap;
+}
+
+.chart-tooltip-value {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.chart-tooltip-label {
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+}
+
+.chart-line-key {
+  display: inline-block;
+  width: 12px;
+  height: 2px;
+  flex-shrink: 0;
+  border-radius: var(--r-pill);
+}
+
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.25rem 0.85rem;
+  padding-top: 2px;
+}
+
+.chart-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* --------------------------------------------------------------------------
+   Container health
+   -------------------------------------------------------------------------- */
+.health-bar {
+  display: flex;
+  gap: 2px;
+  height: 8px;
+}
+
+.health-seg {
+  flex-basis: 4px;
+  border-radius: 2px;
+}
+
+.health-seg:first-child { border-radius: var(--r-pill) 2px 2px var(--r-pill); }
+.health-seg:last-child { border-radius: 2px var(--r-pill) var(--r-pill) 2px; }
+.health-seg:only-child { border-radius: var(--r-pill); }
+.health-seg.ok { background-color: var(--status-ok-fg); }
+.health-seg.warn { background-color: var(--status-warn-fg); }
+.health-seg.danger { background-color: var(--status-danger-fg); }
+.health-seg.neutral { background-color: var(--status-neutral-fg); }
+
+.health-list {
+  list-style: none;
+  margin: 0 calc(-1 * var(--space-2));
+}
+
+.health-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  height: 30px;
+  padding: 0 var(--space-2);
+  border-radius: var(--r-xs);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  text-decoration: none;
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+.health-row:hover {
+  background-color: var(--surface-2);
+  color: var(--text);
+}
+
+.health-icon { font-size: 0.8rem; }
+.health-icon.ok { color: var(--status-ok-fg); }
+.health-icon.warn { color: var(--status-warn-fg); }
+.health-icon.danger { color: var(--status-danger-fg); }
+.health-icon.neutral { color: var(--status-neutral-fg); }
+
+.health-label {
+  flex: 1;
+}
+
+.health-count {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* --------------------------------------------------------------------------
+   Self-healing policy
+   -------------------------------------------------------------------------- */
+.policy-state {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.policy-icon.warn { color: var(--status-warn-fg); }
+.policy-icon.danger { color: var(--accent); }
+
+.policy-state-label {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.policy-desc {
+  font-size: var(--text-xs);
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.policy-rules {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: auto calc(-1 * var(--space-2)) calc(-1 * var(--space-1));
+  height: 30px;
+  flex-shrink: 0;
+  padding: 0 var(--space-2);
+  border-radius: var(--r-xs);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  text-decoration: none;
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+.policy-rules span:first-child {
+  flex: 1;
+}
+
+.policy-rules svg {
+  font-size: 0.65rem;
+}
+
+.policy-rules:hover {
+  background-color: var(--surface-2);
+  color: var(--text);
+}
+
+.policy-switch {
+  position: relative;
+  width: 38px;
+  height: 22px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: var(--r-pill);
+  background-color: var(--surface-active);
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-state);
+}
+
+.policy-switch.on {
+  background-color: var(--accent);
+}
+
+.policy-switch:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.policy-switch-handle {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: var(--r-pill);
+  background-color: #fff;
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--dur-fast) var(--ease-state);
+}
+
+.policy-switch.on .policy-switch-handle {
+  transform: translateX(16px);
+}
+
+/* --------------------------------------------------------------------------
+   Top consumers
+   -------------------------------------------------------------------------- */
+.consumer-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.consumer-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 3px var(--space-3);
+  align-items: baseline;
+}
+
+.consumer-name {
+  font-size: var(--text-sm);
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.consumer-value {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--text);
+}
+
+.consumer-flag {
+  margin-right: 0.35rem;
+  font-size: 0.7rem;
+}
+
+.consumer-flag.warn { color: var(--status-warn-fg); }
+.consumer-flag.danger { color: var(--status-danger-fg); }
+
+.consumer-track {
+  grid-column: 1 / -1;
+  display: block;
+  height: 6px;
+  border-radius: var(--r-pill);
+  background-color: var(--surface-2);
+  overflow: hidden;
+}
+
+.consumer-fill {
+  display: block;
+  height: 100%;
+  border-radius: 0 4px 4px 0;
+  background-color: var(--series-neutral);
+  transition: width var(--dur-base) var(--ease-state);
+}
+
+.consumer-fill.warn { background-color: var(--status-warn-fg); }
+.consumer-fill.danger { background-color: var(--status-danger-fg); }
+
+/* --------------------------------------------------------------------------
+   Events
+   -------------------------------------------------------------------------- */
+.event-histogram {
+  display: flex;
+  align-items: stretch;
+  flex-shrink: 0;
+  height: 44px;
+  border-bottom: 1px solid var(--line);
+}
+
+.event-column-hit {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  padding: 0 1px;
+  min-width: 0;
+}
+
+.event-column-hit:hover {
+  background-color: var(--surface-2);
+}
+
+.event-column {
+  display: block;
+  width: 100%;
+  border-radius: 2px 2px 0 0;
+}
+
+.event-column.filled {
+  background-color: var(--series-neutral);
+}
+
+.event-list {
+  list-style: none;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.event-row {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0;
+  font-size: var(--text-xs);
+}
+
+.event-row + .event-row {
+  border-top: 1px solid var(--line);
+}
+
+.event-time {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--text-dim);
+}
+
+.event-tag {
+  max-width: 140px;
+  padding: 0.05rem 0.45rem;
+  border-radius: var(--r-pill);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.event-text {
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.event-text strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* --------------------------------------------------------------------------
+   Responsive
+   -------------------------------------------------------------------------- */
+@media (max-width: 1320px) {
+  .headline-band {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .headline-vitals {
+    border-left: none;
+    border-top: 1px solid var(--line);
+  }
+
+  .dashboard-screen {
+    height: auto;
+    min-height: 0;
+  }
+
+  .dash-grid {
+    grid-template-rows: none;
+    grid-auto-rows: auto;
+    grid-template-areas:
+      'host host host host host host host host host host host host'
+      'health health health health health health policy policy policy policy policy policy'
+      'consumers consumers consumers consumers consumers consumers network network network network network network'
+      'events events events events events events events events events events events events';
+  }
+
+  .area-host .line-chart {
+    min-height: 280px;
+  }
+
+  .area-network .line-chart {
+    min-height: 220px;
+  }
+}
+
+@media (max-width: 720px) {
+  .headline-vitals {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .vital:nth-child(3) {
+    border-left: none;
+  }
+
+  .vital:nth-child(n + 3) {
+    border-top: 1px solid var(--line);
+  }
+
+  .dash-grid {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: 'host' 'health' 'policy' 'consumers' 'network' 'events';
+  }
+
+  .dash-toolbar-note {
+    display: none;
+  }
+}
