@@ -113,21 +113,45 @@ pm2 logs zeropulse
 
 ---
 
-### Seçenek D: Lokal Hibrit Geliştirme (Go Ajanı + Vite Hot-Reload)
+### Seçenek D: Canlı Front-End Geliştirme (Real-Time Vite HMR + Backend Proxy)
 
-Frontend arayüzünde tasarım ve CSS geliştirirken anında tarayıcıda görmek (Hot Module Replacement) için:
+Frontend arayüzünde React bileşenleri, stil veya tasarım geliştirirken her değişiklikte `make build` ve `install.sh` çalıştırmak **gerekmez**. Anında tarayıcıda görmek (Hot Module Replacement — HMR) için:
 
-#### 1. Terminal: Go Ajanını Başlatın
+#### Tek Komutla Canlı Geliştirme (Önerilen)
 ```bash
-go run ./cmd/agent --dry-run
+make dev
+# veya
+npm run dev
 ```
+Bu akıllı betik:
+1. Arka planda çalışan bir Zeropulse ajanı (`zeropulse.service` veya `:8080`) olup olmadığını kontrol eder.
+2. Servis zaten çalışıyorsa doğrudan ona bağlanır; çalışmıyorsa yerel Go ajanını (`--dry-run`) otomatik başlatır.
+3. Vite geliştirme sunucusunu **`http://localhost:3000`** adresinde ayağa kaldırır.
+4. `ui/src/` içerisindeki herhangi bir `.tsx` veya `.css` dosyasını kaydettiğiniz anda tarayıcı sayfa yenilenmeden **milisaniyeler içinde** güncellenir.
+5. Tüm `/api/...` istekleri ve SSE (`/api/v1/stream`) akışları şeffaf bir şekilde Go backend servisine yönlendirilir (proxy).
 
-#### 2. Terminal: Vite UI Geliştirme Sunucusunu Başlatın
-```bash
-cd ui
-npm run dev   # Vite dev server'ı başlatır (:8080)
-```
-`ui/vite.config.ts` içindeki proxy sayesinde arayüz doğrudan arka plandaki Go servisiyle haberleşir.
+#### Alternatif Komutlar
+- **Sadece Vite UI sunucusu:**
+  ```bash
+  make ui-dev   # veya cd ui && npm run dev
+  ```
+  Tarayıcı: `http://localhost:3000`
+
+- **Go Ajanından Vite'a Ters Proxy (Port 8080 üzerinden HMR):**
+  Doğrudan Go ajanının portunu (`:8080`) kullanmak istiyorsanız:
+  ```bash
+  go run ./cmd/agent --dry-run --ui-proxy=http://localhost:3000
+  ```
+
+- **Disk Üzerinden Statik Sunma (Embedded Binary Yerine):**
+  Derlenmiş UI dosyalarını binary'ye gömmeden disk üzerinden canlı test etmek için:
+  ```bash
+  go run ./cmd/agent --dry-run --ui-dir=./ui/dist
+  ```
+  *(Yan terminalde `make ui-watch` çalıştırarak her kod değişiminde `ui/dist` otomatik güncellenebilir).*
+
+> [!NOTE]
+> `make build` ve `install.sh` / `make update` komutları yalnızca **production dağıtımları** ve systemd servis ikilisini güncellemek içindir. UI geliştirme döngüsünde yalnızca `make dev` kullanınız.
 
 ---
 

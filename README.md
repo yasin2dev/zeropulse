@@ -227,6 +227,16 @@ go test -v -count=1 ./...
 
 Zeropulse, yerel host üzerinde çalışan izole bir web paneli (`ui/`) ve dahili SSE telemetri API'si sunar.
 
+### Canlı Front-End Geliştirme (Real-Time Dev)
+Frontend arayüzünü her seferinde `make build` ve `install.sh` çalıştırmadan, anında Hot Module Replacement (HMR) ile geliştirmek için:
+```bash
+make dev
+# veya
+npm run dev
+```
+- Tarayıcı: `http://localhost:3000` (Değişiklikler derleme ve servis yeniden başlatma gerektirmeden anında yansır).
+- Backend Proxy: `http://localhost:8080` (Arka plandaki systemd servisine veya yerel ajana otomatik bağlanır).
+
 Ajanı ve yönetim panelini yerel ortamda çalıştırmak, REST API ve SSE akışını test etmek, stres senaryoları simüle etmek için detaylı rehbere göz atabilirsiniz:
 👉 **[DEVELOPMENT.md](DEVELOPMENT.md)**
 
