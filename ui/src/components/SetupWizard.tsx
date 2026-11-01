@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faUserShield,
@@ -23,26 +24,29 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({
   onToggleTheme,
   onSetupSuccess,
 }) => {
+  const { t, i18n } = useTranslation();
   const [username, setUsername] = useState('admin');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const currentLang = i18n.language?.startsWith('tr') ? 'tr' : 'en';
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
     if (username.trim().length < 3) {
-      setError('Kullanıcı adı en az 3 karakter olmalıdır.');
+      setError(t('auth.err_username_length'));
       return;
     }
     if (password.length < 6) {
-      setError('Şifre güvenliği için en az 6 karakter girilmelidir.');
+      setError(t('auth.err_password_length'));
       return;
     }
     if (password !== confirmPassword) {
-      setError('Girdiğiniz şifreler birbiriyle eşleşmiyor.');
+      setError(t('auth.err_password_mismatch'));
       return;
     }
 
@@ -59,12 +63,12 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || 'İlk kurulum gerçekleştirilemedi.');
+        throw new Error(data.error || t('auth.err_setup_failed'));
       }
 
       onSetupSuccess(data.token, data.user);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Bilinmeyen bir hata oluştu.';
+      const msg = err instanceof Error ? err.message : t('common.unknown_error');
       setError(msg);
     } finally {
       setLoading(false);
@@ -73,12 +77,33 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({
 
   return (
     <div className="auth-page-wrapper" data-theme={theme}>
-      <div style={{ position: 'absolute', top: '1.25rem', right: '1.5rem' }}>
+      <div style={{ position: 'absolute', top: '1.25rem', right: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <div className="lang-segmented-control" role="group" aria-label={t('navbar.language_selector')}>
+          <button
+            type="button"
+            className={`lang-segment ${currentLang === 'en' ? 'active' : ''}`}
+            onClick={() => i18n.changeLanguage('en')}
+            aria-label={t('navbar.english')}
+            title={t('navbar.english')}
+          >
+            EN
+          </button>
+          <button
+            type="button"
+            className={`lang-segment ${currentLang === 'tr' ? 'active' : ''}`}
+            onClick={() => i18n.changeLanguage('tr')}
+            aria-label={t('navbar.turkish')}
+            title={t('navbar.turkish')}
+          >
+            TR
+          </button>
+        </div>
+
         <button
           type="button"
           className="util-btn"
           onClick={onToggleTheme}
-          title={theme === 'dark' ? 'Açık Temaya Geç' : 'Koyu Temaya Geç'}
+          title={theme === 'dark' ? t('navbar.theme_light') : t('navbar.theme_dark')}
         >
           <FontAwesomeIcon icon={theme === 'dark' ? faSun : faMoon} />
         </button>
@@ -89,12 +114,11 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({
           <BrandLogo size={48} />
           <div className="auth-badge">
             <FontAwesomeIcon icon={faLock} />
-            <span>İlk Kurulum &middot; Zero-Trust Setup</span>
+            <span>{t('auth.setup_badge')}</span>
           </div>
-          <h1 className="auth-title">Süper Yönetici Hesabı Oluştur</h1>
+          <h1 className="auth-title">{t('auth.setup_title')}</h1>
           <p className="auth-subtitle">
-            Zeropulse Edge Gateway donanım paneline hoş geldiniz. Sisteminizi güvene almak için ilk
-            root yönetici (Superuser) hesabınızı tanımlayın.
+            {t('auth.setup_subtitle')}
           </p>
         </div>
 
@@ -108,7 +132,7 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({
         <form onSubmit={handleSubmit} className="auth-form">
           <div className="form-group">
             <label className="form-label" htmlFor="setup-username">
-              <span>Yönetici Kullanıcı Adı</span>
+              <span>{t('auth.admin_username')}</span>
               <FontAwesomeIcon icon={faUser} style={{ opacity: 0.5 }} />
             </label>
             <input
@@ -122,12 +146,12 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({
               autoFocus
               autoComplete="username"
             />
-            <span className="form-helper">Root yetkilerine sahip ana kullanıcı kimliği.</span>
+            <span className="form-helper">{t('auth.admin_username_helper')}</span>
           </div>
 
           <div className="form-group">
             <label className="form-label" htmlFor="setup-password">
-              <span>Şifre</span>
+              <span>{t('auth.password')}</span>
               <FontAwesomeIcon icon={faKey} style={{ opacity: 0.5 }} />
             </label>
             <input
@@ -140,12 +164,12 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({
               required
               autoComplete="new-password"
             />
-            <span className="form-helper">En az 6 karakterden oluşan güçlü bir parola seçin.</span>
+            <span className="form-helper">{t('auth.admin_password_helper')}</span>
           </div>
 
           <div className="form-group">
             <label className="form-label" htmlFor="setup-confirm-password">
-              <span>Şifre Tekrar</span>
+              <span>{t('auth.confirm_password')}</span>
               <FontAwesomeIcon icon={faKey} style={{ opacity: 0.5 }} />
             </label>
             <input
@@ -162,11 +186,11 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({
 
           <button type="submit" className="btn-primary" disabled={loading} style={{ marginTop: '0.5rem' }}>
             {loading ? (
-              <span>Hesap Oluşturuluyor...</span>
+              <span>{t('auth.creating_account')}</span>
             ) : (
               <>
                 <FontAwesomeIcon icon={faUserShield} />
-                <span>Yöneticiyi Oluştur ve Giriş Yap</span>
+                <span>{t('auth.create_admin_button')}</span>
                 <FontAwesomeIcon icon={faArrowRight} style={{ fontSize: '0.75rem' }} />
               </>
             )}

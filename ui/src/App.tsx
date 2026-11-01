@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useEdgeTelemetry } from './hooks/useEdgeTelemetry';
 import { Navbar, ActiveTab } from './components/Navbar';
 import { PulseBar } from './components/PulseBar';
@@ -13,6 +14,7 @@ import { AuthStatus } from './types';
 import './styles/dashboard.css';
 
 export const App: React.FC = () => {
+  const { t } = useTranslation();
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     const saved = localStorage.getItem('zeropulse_theme');
     if (saved === 'light' || saved === 'dark') {
@@ -108,7 +110,7 @@ export const App: React.FC = () => {
     return (
       <div className="auth-page-wrapper" data-theme={theme}>
         <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontFamily: 'var(--font-mono)' }}>
-          ZEROPULSE INITIALIZING...
+          {t('auth.initializing')}
         </div>
       </div>
     );

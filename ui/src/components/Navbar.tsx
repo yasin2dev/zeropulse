@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faGaugeHigh,
@@ -52,7 +53,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   onLogout,
   actionLoading,
 }) => {
+  const { t, i18n } = useTranslation();
   const isAdmin = currentUser?.role === 'admin';
+  const currentLang = i18n.language?.startsWith('tr') ? 'tr' : 'en';
 
   return (
     <header className="appliance-header">
@@ -64,9 +67,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           <div className="brand-text-block">
             <div className="brand-title-row">
               <span className="brand-name">Zeropulse</span>
-              <span className="brand-edition">Appliance</span>
             </div>
-            <span className="brand-subline">Edge Telemetry & Self-Healing Gateway</span>
           </div>
         </div>
 
@@ -74,8 +75,10 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div className="system-telemetry-strip">
           <div className="telemetry-pill">
             <FontAwesomeIcon icon={faServer} className="pill-icon" />
-            <span className="pill-key">Daemon:</span>
-            <span className="pill-val">{mode === 'docker' ? 'Docker Engine' : 'Host Native'}</span>
+            <span className="pill-key">{t('navbar.daemon')}</span>
+            <span className="pill-val">
+              {mode === 'docker' ? t('navbar.docker_engine') : t('navbar.host_native')}
+            </span>
           </div>
 
           <div className="telemetry-pill">
@@ -83,12 +86,12 @@ export const Navbar: React.FC<NavbarProps> = ({
               icon={dryRun ? faShieldHalved : faBolt}
               style={{ color: dryRun ? 'var(--status-warn-fg)' : 'var(--accent)' }}
             />
-            <span className="pill-key">Koruma:</span>
+            <span className="pill-key">{t('navbar.protection')}</span>
             <span
               className="pill-val"
               style={{ color: dryRun ? 'var(--status-warn-fg)' : 'var(--accent)' }}
             >
-              {dryRun ? 'Gözlem Modu' : 'Aktif Self-Healing'}
+              {dryRun ? t('navbar.dry_run') : t('navbar.self_healing')}
             </span>
           </div>
 
@@ -102,36 +105,58 @@ export const Navbar: React.FC<NavbarProps> = ({
                   : 'offline'
               }`}
             />
-            <span className="pill-key">Akış:</span>
+            <span className="pill-key">{t('navbar.stream')}</span>
             <span className="pill-val">
               {connectionState === 'connected'
-                ? 'Canlı (5s)'
+                ? t('navbar.stream_live')
                 : connectionState === 'reconnecting'
-                ? 'Yeniden Bağlanıyor'
-                : 'Çevrimdışı'}
+                ? t('navbar.stream_reconnecting')
+                : t('navbar.stream_offline')}
             </span>
           </div>
         </div>
 
-        {/* Appliance System Utilities (Segmented Theme Control, Refresh & User/Logout) */}
+        {/* Appliance System Utilities (Segmented Theme Control, Language Switcher, Refresh & User/Logout) */}
         <div className="appliance-utilities">
           <button
             type="button"
             className="util-btn"
             onClick={onRefresh}
             disabled={actionLoading}
-            title="Telemetriyi anında yenile"
+            title={t('navbar.refresh_telemetry')}
           >
             <FontAwesomeIcon icon={faRotateRight} spin={actionLoading} />
           </button>
 
+          {/* Integrated Language Switcher */}
+          <div className="lang-segmented-control" role="group" aria-label={t('navbar.language_selector')}>
+            <button
+              type="button"
+              className={`lang-segment ${currentLang === 'en' ? 'active' : ''}`}
+              onClick={() => i18n.changeLanguage('en')}
+              aria-label={t('navbar.english')}
+              title={t('navbar.english')}
+            >
+              EN
+            </button>
+            <button
+              type="button"
+              className={`lang-segment ${currentLang === 'tr' ? 'active' : ''}`}
+              onClick={() => i18n.changeLanguage('tr')}
+              aria-label={t('navbar.turkish')}
+              title={t('navbar.turkish')}
+            >
+              TR
+            </button>
+          </div>
+
           {/* Integrated Theme Mode Switcher */}
-          <div className="theme-segmented-control" title="Açık / Koyu Tema Seçici">
+          <div className="theme-segmented-control" title={t('navbar.theme_selector')}>
             <button
               type="button"
               className={`theme-segment ${theme === 'dark' ? 'active' : ''}`}
               onClick={() => theme !== 'dark' && onToggleTheme()}
-              aria-label="Koyu Tema"
+              aria-label={t('navbar.theme_dark')}
             >
               <FontAwesomeIcon icon={faMoon} />
             </button>
@@ -139,7 +164,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               type="button"
               className={`theme-segment ${theme === 'light' ? 'active' : ''}`}
               onClick={() => theme !== 'light' && onToggleTheme()}
-              aria-label="Açık Tema"
+              aria-label={t('navbar.theme_light')}
             >
               <FontAwesomeIcon icon={faSun} />
             </button>
@@ -147,7 +172,9 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {currentUser && (
             <div className="operator-badge">
-              <span className="operator-role">{currentUser.role === 'admin' ? 'Yönetici' : 'Gözlemci'}</span>
+              <span className="operator-role">
+                {currentUser.role === 'admin' ? t('navbar.role_admin') : t('navbar.role_viewer')}
+              </span>
               <span className="operator-name">{currentUser.username}</span>
             </div>
           )}
@@ -156,7 +183,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             type="button"
             className="util-btn"
             onClick={onLogout}
-            title="Oturumu Kapat"
+            title={t('navbar.logout')}
             style={{ color: 'var(--text-muted)' }}
           >
             <FontAwesomeIcon icon={faRightFromBracket} />
@@ -172,7 +199,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           onClick={() => onTabChange('dashboard')}
         >
           <FontAwesomeIcon icon={faGaugeHigh} className="tab-icon" />
-          <span>Genel Bakış</span>
+          <span>{t('navbar.tabs.dashboard')}</span>
         </button>
 
         <button
@@ -181,7 +208,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           onClick={() => onTabChange('workloads')}
         >
           <FontAwesomeIcon icon={faCube} className="tab-icon" />
-          <span>İş Yükleri & Konteynerler</span>
+          <span>{t('navbar.tabs.workloads')}</span>
           <span className="tab-counter">{totalContainers}</span>
           {unhealthyCount > 0 && <span className="tab-alert-dot" />}
         </button>
@@ -192,7 +219,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           onClick={() => onTabChange('audit')}
         >
           <FontAwesomeIcon icon={faListCheck} className="tab-icon" />
-          <span>Olay & İyileştirme Günlüğü</span>
+          <span>{t('navbar.tabs.audit')}</span>
           <span className="tab-counter">{totalLogs}</span>
         </button>
 
@@ -202,7 +229,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           onClick={() => onTabChange('settings')}
         >
           <FontAwesomeIcon icon={faGear} className="tab-icon" />
-          <span>Kural & Eşik Yapılandırması</span>
+          <span>{t('navbar.tabs.settings')}</span>
         </button>
 
         {isAdmin && (
@@ -212,7 +239,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             onClick={() => onTabChange('users')}
           >
             <FontAwesomeIcon icon={faUsers} className="tab-icon" />
-            <span>Kullanıcı Yönetimi</span>
+            <span>{t('navbar.tabs.users')}</span>
           </button>
         )}
       </nav>

@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faListCheck,
@@ -7,12 +8,14 @@ import {
   faBolt,
 } from '@fortawesome/free-solid-svg-icons';
 import { AuditEntry } from '../types';
+import { formatTime } from '../i18n';
 
 interface AuditLogProps {
   logs: AuditEntry[];
 }
 
 export const AuditLog: React.FC<AuditLogProps> = ({ logs }) => {
+  const { t, i18n } = useTranslation();
   const [filter, setFilter] = useState<'all' | 'actions' | 'anomalies'>('all');
 
   const filteredLogs = useMemo(() => {
@@ -42,8 +45,8 @@ export const AuditLog: React.FC<AuditLogProps> = ({ logs }) => {
       <div className="section-header">
         <h2 className="section-title">
           <FontAwesomeIcon icon={faListCheck} style={{ opacity: 0.8 }} />
-          <span>Olay & İyileştirme Günlüğü</span>
-          <span className="section-count">({logs.length} Kayıt)</span>
+          <span>{t('audit.title')}</span>
+          <span className="section-count">{t('audit.count', { count: logs.length })}</span>
         </h2>
 
         <div className="controls-group">
@@ -51,29 +54,29 @@ export const AuditLog: React.FC<AuditLogProps> = ({ logs }) => {
             className={`filter-btn ${filter === 'all' ? 'active' : ''}`}
             onClick={() => setFilter('all')}
           >
-            Tümü ({logs.length})
+            {t('audit.filter_all', { count: logs.length })}
           </button>
           <button
             className={`filter-btn ${filter === 'actions' ? 'active' : ''}`}
             onClick={() => setFilter('actions')}
           >
-            İyileştirmeler
+            {t('audit.filter_actions')}
           </button>
           <button
             className={`filter-btn ${filter === 'anomalies' ? 'active' : ''}`}
             onClick={() => setFilter('anomalies')}
           >
-            Anomaliler & Eşik Aşımları
+            {t('audit.filter_anomalies')}
           </button>
         </div>
       </div>
 
       <div className="audit-log-container">
         {filteredLogs.length === 0 ? (
-          <div className="empty-state">Henüz kaydedilmiş anomali veya iyileştirme olayı bulunmuyor.</div>
+          <div className="empty-state">{t('audit.empty')}</div>
         ) : (
           filteredLogs.map((log) => {
-            const timeStr = new Date(log.timestamp).toLocaleTimeString('tr-TR');
+            const timeStr = formatTime(log.timestamp, i18n.language);
             let tagColor = 'var(--text-muted)';
             let tagBg = 'var(--surface-2)';
 
@@ -111,12 +114,12 @@ export const AuditLog: React.FC<AuditLogProps> = ({ logs }) => {
                   {log.dry_run ? (
                     <span className="status-pill sm status-warn">
                       <FontAwesomeIcon icon={faShieldHalved} />
-                      <span>Gözlem (Dry-Run)</span>
+                      <span>{t('audit.badge_dry_run')}</span>
                     </span>
                   ) : (
                     <span className="status-pill sm status-danger">
                       <FontAwesomeIcon icon={faBolt} />
-                      <span>Self-Healing</span>
+                      <span>{t('audit.badge_remediation')}</span>
                     </span>
                   )}
                 </div>

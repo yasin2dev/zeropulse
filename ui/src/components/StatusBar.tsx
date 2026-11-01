@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faCircleCheck,
@@ -10,6 +11,7 @@ import {
   faBolt,
 } from '@fortawesome/free-solid-svg-icons';
 import { ConnectionState, RuntimeMode } from '../types';
+import { formatTime } from '../i18n';
 
 interface StatusBarProps {
   mode: RuntimeMode;
@@ -26,26 +28,28 @@ export const StatusBar: React.FC<StatusBarProps> = ({
   stressIndex,
   lastUpdated,
 }) => {
+  const { t, i18n } = useTranslation();
+
   let systemHealthIcon = faCircleCheck;
-  let systemHealthText = 'Sistem Durumu: Kararlı';
+  let systemHealthText = t('status_bar.nominal');
   let systemHealthClass = 'status-ok';
 
   if (stressIndex >= 0.7) {
     systemHealthIcon = faCircleExclamation;
-    systemHealthText = 'Sistem Durumu: Kritik Yük Altında';
+    systemHealthText = t('status_bar.critical');
     systemHealthClass = 'status-danger';
   } else if (stressIndex >= 0.3) {
     systemHealthIcon = faTriangleExclamation;
-    systemHealthText = 'Sistem Durumu: Dikkat';
+    systemHealthText = t('status_bar.warning');
     systemHealthClass = 'status-warn';
   }
 
   const connLabel =
     connectionState === 'connected'
-      ? 'Bağlı'
+      ? t('status_bar.connected')
       : connectionState === 'reconnecting'
-      ? 'Yeniden Bağlanıyor'
-      : 'Bağlantı Kesildi';
+      ? t('status_bar.reconnecting')
+      : t('status_bar.disconnected');
 
   return (
     <footer className="appliance-status-bar">
@@ -59,7 +63,12 @@ export const StatusBar: React.FC<StatusBarProps> = ({
 
         <span className="status-item">
           <FontAwesomeIcon icon={faNetworkWired} style={{ opacity: 0.6 }} />
-          <span>Daemon: {mode === 'docker' ? 'Docker Engine' : 'Host Native'} ({connLabel})</span>
+          <span>
+            {t('status_bar.daemon', {
+              mode: mode === 'docker' ? t('navbar.docker_engine') : t('navbar.host_native'),
+              conn: connLabel,
+            })}
+          </span>
         </span>
 
         <span className="status-separator">|</span>
@@ -69,7 +78,11 @@ export const StatusBar: React.FC<StatusBarProps> = ({
             icon={dryRun ? faShieldHalved : faBolt}
             style={{ color: dryRun ? 'var(--status-warn-fg)' : 'var(--accent)' }}
           />
-          <span>Politika: {dryRun ? 'Gözlem Modu (Dry-Run)' : 'Aktif Self-Healing'}</span>
+          <span>
+            {t('status_bar.policy', {
+              policy: dryRun ? t('status_bar.policy_dry_run') : t('status_bar.policy_active'),
+            })}
+          </span>
         </span>
       </div>
 
@@ -77,7 +90,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
         {lastUpdated && (
           <span className="status-item tabular">
             <FontAwesomeIcon icon={faClock} style={{ opacity: 0.6 }} />
-            <span>Telemetri: {lastUpdated.toLocaleTimeString('tr-TR')}</span>
+            <span>{t('status_bar.telemetry', { time: formatTime(lastUpdated, i18n.language) })}</span>
           </span>
         )}
 

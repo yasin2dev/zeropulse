@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faRightToBracket,
@@ -22,17 +23,20 @@ export const LoginView: React.FC<LoginViewProps> = ({
   onToggleTheme,
   onLoginSuccess,
 }) => {
+  const { t, i18n } = useTranslation();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const currentLang = i18n.language?.startsWith('tr') ? 'tr' : 'en';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
     if (!username.trim() || !password) {
-      setError('Lütfen kullanıcı adı ve şifrenizi girin.');
+      setError(t('auth.login_required_fields'));
       return;
     }
 
@@ -49,12 +53,12 @@ export const LoginView: React.FC<LoginViewProps> = ({
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || 'Giriş yapılamadı.');
+        throw new Error(data.error || t('auth.login_failed'));
       }
 
       onLoginSuccess(data.token, data.user);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Kullanıcı adı veya şifre hatalı.';
+      const msg = err instanceof Error ? err.message : t('auth.invalid_credentials');
       setError(msg);
     } finally {
       setLoading(false);
@@ -63,12 +67,33 @@ export const LoginView: React.FC<LoginViewProps> = ({
 
   return (
     <div className="auth-page-wrapper" data-theme={theme}>
-      <div style={{ position: 'absolute', top: '1.25rem', right: '1.5rem' }}>
+      <div style={{ position: 'absolute', top: '1.25rem', right: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <div className="lang-segmented-control" role="group" aria-label={t('navbar.language_selector')}>
+          <button
+            type="button"
+            className={`lang-segment ${currentLang === 'en' ? 'active' : ''}`}
+            onClick={() => i18n.changeLanguage('en')}
+            aria-label={t('navbar.english')}
+            title={t('navbar.english')}
+          >
+            EN
+          </button>
+          <button
+            type="button"
+            className={`lang-segment ${currentLang === 'tr' ? 'active' : ''}`}
+            onClick={() => i18n.changeLanguage('tr')}
+            aria-label={t('navbar.turkish')}
+            title={t('navbar.turkish')}
+          >
+            TR
+          </button>
+        </div>
+
         <button
           type="button"
           className="util-btn"
           onClick={onToggleTheme}
-          title={theme === 'dark' ? 'Açık Temaya Geç' : 'Koyu Temaya Geç'}
+          title={theme === 'dark' ? t('navbar.theme_light') : t('navbar.theme_dark')}
         >
           <FontAwesomeIcon icon={theme === 'dark' ? faSun : faMoon} />
         </button>
@@ -79,11 +104,11 @@ export const LoginView: React.FC<LoginViewProps> = ({
           <BrandLogo size={48} />
           <div className="auth-badge">
             <FontAwesomeIcon icon={faShieldHalved} />
-            <span>APPLIANCE ACCESS GATEWAY</span>
+            <span>{t('auth.login_badge')}</span>
           </div>
-          <h1 className="auth-title">Oturum Açın</h1>
+          <h1 className="auth-title">{t('auth.login_title')}</h1>
           <p className="auth-subtitle">
-            Zeropulse Edge Management arayüzüne erişmek için kimlik bilgilerinizi giriniz.
+            {t('auth.login_subtitle')}
           </p>
         </div>
 
@@ -97,7 +122,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
         <form onSubmit={handleSubmit} className="auth-form">
           <div className="form-group">
             <label className="form-label" htmlFor="login-username">
-              <span>Kullanıcı Adı</span>
+              <span>{t('auth.username')}</span>
               <FontAwesomeIcon icon={faUser} style={{ opacity: 0.5 }} />
             </label>
             <input
@@ -115,7 +140,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
 
           <div className="form-group">
             <label className="form-label" htmlFor="login-password">
-              <span>Şifre</span>
+              <span>{t('auth.password')}</span>
               <FontAwesomeIcon icon={faKey} style={{ opacity: 0.5 }} />
             </label>
             <input
@@ -132,11 +157,11 @@ export const LoginView: React.FC<LoginViewProps> = ({
 
           <button type="submit" className="btn-primary" disabled={loading} style={{ marginTop: '0.5rem' }}>
             {loading ? (
-              <span>Doğrulanıyor...</span>
+              <span>{t('auth.verifying')}</span>
             ) : (
               <>
                 <FontAwesomeIcon icon={faRightToBracket} />
-                <span>Panele Giriş Yap</span>
+                <span>{t('auth.sign_in')}</span>
               </>
             )}
           </button>

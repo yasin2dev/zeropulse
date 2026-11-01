@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faMicrochip,
@@ -10,6 +11,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { SystemOverview } from '../types';
 import { ConfirmationModal } from './ConfirmationModal';
+import { formatBytes } from '../i18n';
 
 interface PulseBarProps {
   system: SystemOverview;
@@ -18,20 +20,13 @@ interface PulseBarProps {
   actionLoading: boolean;
 }
 
-function formatBytes(bytes: number): string {
-  if (bytes === 0) return '0 B';
-  const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
-}
-
 export const PulseBar: React.FC<PulseBarProps> = ({
   system,
   dryRun,
   onToggleDryRun,
   actionLoading,
 }) => {
+  const { t } = useTranslation();
   const [modalOpen, setModalOpen] = useState(false);
 
   const cpuPercent = Math.min(100, Math.max(0, system.system_cpu_percent));
@@ -41,13 +36,13 @@ export const PulseBar: React.FC<PulseBarProps> = ({
   const stressIndex = system.stress_index_1m || 0;
 
   let cpuStatusClass = 'status-ok';
-  let cpuStatusLabel = 'Kararlı / Normal';
+  let cpuStatusLabel = t('pulse.status_nominal');
   if (cpuPercent > 85) {
     cpuStatusClass = 'status-danger';
-    cpuStatusLabel = 'Kritik Doygunluk';
+    cpuStatusLabel = t('pulse.status_critical');
   } else if (cpuPercent > 65) {
     cpuStatusClass = 'status-warn';
-    cpuStatusLabel = 'Yüksek Yük';
+    cpuStatusLabel = t('pulse.status_high_load');
   }
 
   let memStatusClass = 'status-ok';
@@ -55,13 +50,13 @@ export const PulseBar: React.FC<PulseBarProps> = ({
   else if (memPercent > 70) memStatusClass = 'status-warn';
 
   let stressStatusClass = 'status-ok';
-  let stressLabel = 'Düşük';
+  let stressLabel = t('pulse.stress_level_low');
   if (stressIndex >= 0.7) {
     stressStatusClass = 'status-danger';
-    stressLabel = 'Kritik';
+    stressLabel = t('pulse.stress_level_critical');
   } else if (stressIndex >= 0.3) {
     stressStatusClass = 'status-warn';
-    stressLabel = 'Yüksek';
+    stressLabel = t('pulse.stress_level_high');
   }
 
   const handleToggleClick = () => {
@@ -91,9 +86,9 @@ export const PulseBar: React.FC<PulseBarProps> = ({
                 <FontAwesomeIcon icon={faMicrochip} />
               </span>
               <div>
-                <h3 className="pulse-card-title">Sistem Çekirdek Yükü & Vital Telemetri</h3>
+                <h3 className="pulse-card-title">{t('pulse.cpu_title')}</h3>
                 <span className="pulse-card-meta">
-                  {system.mode === 'docker' ? 'Docker Daemon Yönetimi' : 'Host Native İşlemleri'} &middot; Anomali Eşiği: %80.0
+                  {system.mode === 'docker' ? t('pulse.docker_management') : t('pulse.host_operations')} &middot; {t('pulse.anomaly_threshold')}
                 </span>
               </div>
             </div>
@@ -117,9 +112,9 @@ export const PulseBar: React.FC<PulseBarProps> = ({
                 />
               </div>
               <div className="pulse-hero-scale">
-                <span>%0 Boşta</span>
-                <span className="threshold-marker">Eşik: %80.0</span>
-                <span>%100 Doygun</span>
+                <span>{t('pulse.scale_idle')}</span>
+                <span className="threshold-marker">{t('pulse.scale_threshold')}</span>
+                <span>{t('pulse.scale_saturated')}</span>
               </div>
             </div>
           </div>
@@ -127,17 +122,17 @@ export const PulseBar: React.FC<PulseBarProps> = ({
           <div className="pulse-hero-substrip">
             <div className="stress-strip-item">
               <FontAwesomeIcon icon={faGaugeHigh} className="stress-icon" />
-              <span className="stress-label">1 Dk Anomali Stresi:</span>
+              <span className="stress-label">{t('pulse.stress_label')}</span>
               <span className={`status-pill sm ${stressStatusClass}`}>
                 {stressIndex.toFixed(2)} ({stressLabel})
               </span>
             </div>
             <p className="pulse-human-note">
               {stressIndex >= 0.7
-                ? 'Son 60 saniye içinde ardışık eşik aşımları kaydedildi; sistem koruma eşiğinde.'
+                ? t('pulse.note_critical')
                 : cpuPercent > 65
-                ? 'İşlemci yükü ortalamanın üzerinde seyrediyor; pencere motoru değişimleri izliyor.'
-                : 'Çekirdek doygunluğu ve telemetri ritmi olağan sınırlarında sakin çalışıyor.'}
+                ? t('pulse.note_high')
+                : t('pulse.note_nominal')}
             </p>
           </div>
         </div>
@@ -149,7 +144,7 @@ export const PulseBar: React.FC<PulseBarProps> = ({
             <div className="subcard-header">
               <span className="subcard-title">
                 <FontAwesomeIcon icon={faMemory} style={{ opacity: 0.75 }} />
-                <span>Bellek Tüketimi (RAM)</span>
+                <span>{t('pulse.memory_title')}</span>
               </span>
               <span className={`status-pill sm ${memStatusClass}`}>
                 {memPercent.toFixed(1)}%
@@ -169,8 +164,8 @@ export const PulseBar: React.FC<PulseBarProps> = ({
             </div>
 
             <div className="subcard-footer">
-              <span>Boş: {formatBytes(memTotal > memUsed ? memTotal - memUsed : 0)}</span>
-              <span>Eşik: %85.0</span>
+              <span>{t('pulse.free', { amount: formatBytes(memTotal > memUsed ? memTotal - memUsed : 0) })}</span>
+              <span>{t('pulse.threshold', { percent: '85.0' })}</span>
             </div>
           </div>
 
@@ -179,16 +174,18 @@ export const PulseBar: React.FC<PulseBarProps> = ({
             <div className="subcard-header">
               <span className="subcard-title">
                 <FontAwesomeIcon icon={faBoxesStacked} style={{ opacity: 0.75 }} />
-                <span>İş Yükleri & Konteynerler</span>
+                <span>{t('pulse.workloads_title')}</span>
               </span>
               <span className="status-pill sm status-ok">
-                {system.running_containers} Çalışıyor
+                {t('pulse.containers_running', { count: system.running_containers })}
               </span>
             </div>
 
             <div className="subcard-metric-row">
               <span className="subcard-value">{system.running_containers}</span>
-              <span className="subcard-limit">/ {system.total_containers} Konteyner</span>
+              <span className="subcard-limit">
+                {t('pulse.containers_total', { count: system.total_containers })}
+              </span>
             </div>
 
             <div className="progress-track sm">
@@ -205,8 +202,15 @@ export const PulseBar: React.FC<PulseBarProps> = ({
             </div>
 
             <div className="subcard-footer">
-              <span>Çalışma Modu: {system.mode === 'docker' ? 'Docker Engine' : 'Host Native'}</span>
-              <span>Anomali: Yok</span>
+              <span>
+                {t('pulse.runtime_mode', {
+                  mode: system.mode === 'docker' ? t('navbar.docker_engine') : t('navbar.host_native'),
+                })}
+              </span>
+              <span>
+                {t('pulse.anomaly_label')}{' '}
+                {stressIndex >= 0.7 ? t('pulse.anomaly_detected') : t('pulse.anomaly_none')}
+              </span>
             </div>
           </div>
         </div>
@@ -220,15 +224,13 @@ export const PulseBar: React.FC<PulseBarProps> = ({
           </div>
           <div className="safety-text-group">
             <div className="safety-title-row">
-              <span className="safety-title">Otonom İyileştirme Politikası:</span>
+              <span className="safety-title">{t('pulse.safety_title')}</span>
               <span className={`status-pill ${dryRun ? 'status-warn' : 'status-danger'}`}>
-                {dryRun ? 'Gözlem Modu (Dry-Run)' : 'Aktif Self-Healing Devrede'}
+                {dryRun ? t('pulse.policy_dry_run') : t('pulse.policy_active')}
               </span>
             </div>
             <p className="safety-desc">
-              {dryRun
-                ? 'Kural ihlallerinde kararsız kalan iş yükleri için yalnızca teşhis logu üretilir; otomatik restart uygulanmaz.'
-                : 'Dikkat: Tanımlı kaynak eşiklerini 3 ardışık periyot aşan konteynerler anında otonom olarak yeniden başlatılır.'}
+              {dryRun ? t('pulse.desc_dry_run') : t('pulse.desc_active')}
             </p>
           </div>
         </div>
@@ -239,7 +241,7 @@ export const PulseBar: React.FC<PulseBarProps> = ({
             className={`toggle-switch-btn ${dryRun ? 'active' : 'disabled-mode'}`}
             onClick={handleToggleClick}
             disabled={actionLoading}
-            title={dryRun ? 'Aktif self-healing moduna geç' : 'Emniyetli dry-run moduna dön'}
+            title={dryRun ? t('pulse.switch_to_active') : t('pulse.switch_to_dry_run')}
           >
             <div className="toggle-switch-handle" />
           </button>
@@ -248,9 +250,9 @@ export const PulseBar: React.FC<PulseBarProps> = ({
 
       <ConfirmationModal
         isOpen={modalOpen}
-        title="Aktif Remediation Modunu Aç"
-        message="Dry-Run emniyet kilidini kaldırmak üzeresiniz. Bu modda, kural eşiklerini art arda aşan konteynerler anında otomatik olarak YENİDEN BAŞLATILACAKTIR. Devam etmek istiyor musunuz?"
-        confirmLabel="Emniyeti Kaldır ve Aktif Et"
+        title={t('pulse.modal_title')}
+        message={t('pulse.modal_message')}
+        confirmLabel={t('pulse.modal_confirm')}
         isDanger={true}
         isLoading={actionLoading}
         onConfirm={handleConfirmRemediation}

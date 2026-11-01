@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faUsers,
@@ -12,6 +13,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { UserAccount } from '../types';
 import { ConfirmationModal } from './ConfirmationModal';
+import { formatDateTime } from '../i18n';
 
 interface UserManagementProps {
   currentUser: { username: string; role: string };
@@ -19,6 +21,7 @@ interface UserManagementProps {
 }
 
 export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) => {
+  const { t, i18n } = useTranslation();
   const [users, setUsers] = useState<UserAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [feedback, setFeedback] = useState<{ text: string; isError: boolean } | null>(null);
@@ -68,15 +71,15 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newUsername.trim().length < 3) {
-      showToast('Kullanıcı adı en az 3 karakter olmalıdır.', true);
+      showToast(t('users.val_user_min'), true);
       return;
     }
     if (newPassword.length < 6) {
-      showToast('Şifre en az 6 karakter olmalıdır.', true);
+      showToast(t('users.val_pw_min'), true);
       return;
     }
     if (newPassword !== newPasswordConfirm) {
-      showToast('Şifreler birbiriyle eşleşmiyor.', true);
+      showToast(t('users.val_pw_match'), true);
       return;
     }
 
@@ -94,10 +97,10 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || 'Kullanıcı oluşturulamadı.');
+        throw new Error(data.error || t('users.toast_create_fail'));
       }
 
-      showToast(`Kullanıcı ${newUsername} başarıyla oluşturuldu.`);
+      showToast(t('users.toast_create_success', { username: newUsername }));
       setCreateModalOpen(false);
       setNewUsername('');
       setNewPassword('');
@@ -105,7 +108,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
       setNewRole('viewer');
       fetchUsers();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Kullanıcı oluşturulamadı.';
+      const msg = err instanceof Error ? err.message : t('users.toast_create_fail');
       showToast(msg, true);
     } finally {
       setCreateSubmitting(false);
@@ -117,11 +120,11 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
     if (!passwordTarget) return;
 
     if (changePasswordVal.length < 6) {
-      showToast('Yeni şifre en az 6 karakter olmalıdır.', true);
+      showToast(t('users.val_new_pw_min'), true);
       return;
     }
     if (changePasswordVal !== changePasswordConfirm) {
-      showToast('Şifreler birbiriyle eşleşmiyor.', true);
+      showToast(t('users.val_pw_match'), true);
       return;
     }
 
@@ -137,15 +140,15 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || 'Şifre güncellenemedi.');
+        throw new Error(data.error || t('users.toast_pw_fail'));
       }
 
-      showToast(`${passwordTarget} kullanıcısının şifresi başarıyla güncellendi.`);
+      showToast(t('users.toast_pw_success', { username: passwordTarget }));
       setPasswordTarget(null);
       setChangePasswordVal('');
       setChangePasswordConfirm('');
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Şifre güncellenemedi.';
+      const msg = err instanceof Error ? err.message : t('users.toast_pw_fail');
       showToast(msg, true);
     } finally {
       setPasswordSubmitting(false);
@@ -163,14 +166,14 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || 'Kullanıcı silinemedi.');
+        throw new Error(data.error || t('users.toast_delete_fail'));
       }
 
-      showToast(`${deleteTarget} kullanıcısı silindi.`);
+      showToast(t('users.toast_delete_success', { username: deleteTarget }));
       setDeleteTarget(null);
       fetchUsers();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Kullanıcı silinemedi.';
+      const msg = err instanceof Error ? err.message : t('users.toast_delete_fail');
       showToast(msg, true);
     } finally {
       setDeleteSubmitting(false);
@@ -182,8 +185,8 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
       <div className="users-toolbar">
         <div className="users-title-block">
           <FontAwesomeIcon icon={faUsers} style={{ opacity: 0.8 }} />
-          <h2 className="users-title">Operatör ve Kullanıcı Yönetimi</h2>
-          <span className="section-count">({users.length} Kayıtlı Kullanıcı)</span>
+          <h2 className="users-title">{t('users.title')}</h2>
+          <span className="section-count">{t('users.count', { count: users.length })}</span>
         </div>
 
         <div>
@@ -194,7 +197,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
             style={{ fontWeight: 600 }}
           >
             <FontAwesomeIcon icon={faUserPlus} />
-            <span>Yeni Kullanıcı Ekle</span>
+            <span>{t('users.add_user')}</span>
           </button>
         </div>
       </div>
@@ -219,30 +222,30 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
         <table className="data-table">
           <thead>
             <tr>
-              <th>Kullanıcı Adı</th>
-              <th>Yetki & Rol</th>
-              <th>Oluşturulma Tarihi</th>
-              <th>Durum</th>
-              <th>İşlemler</th>
+              <th>{t('users.th_username')}</th>
+              <th>{t('users.th_role')}</th>
+              <th>{t('users.th_created')}</th>
+              <th>{t('users.th_status')}</th>
+              <th>{t('users.th_actions')}</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
                 <td colSpan={5} className="empty-state">
-                  Kullanıcılar yükleniyor...
+                  {t('users.loading')}
                 </td>
               </tr>
             ) : users.length === 0 ? (
               <tr>
                 <td colSpan={5} className="empty-state">
-                  Kayıtlı kullanıcı bulunamadı.
+                  {t('users.empty')}
                 </td>
               </tr>
             ) : (
               users.map((u) => {
                 const isSelf = u.username === currentUser.username;
-                const createdDate = new Date(u.created_at).toLocaleString('tr-TR');
+                const createdDate = formatDateTime(u.created_at, i18n.language);
 
                 return (
                   <tr key={u.id}>
@@ -251,7 +254,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
                         <span style={{ fontWeight: 600 }}>{u.username}</span>
                         {isSelf && (
                           <span className="status-pill sm status-ok" style={{ fontSize: '0.625rem' }}>
-                            Mevcut Hesap
+                            {t('users.current_account')}
                           </span>
                         )}
                       </div>
@@ -261,12 +264,12 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
                       {u.role === 'admin' ? (
                         <span className="status-pill sm status-warn">
                           <FontAwesomeIcon icon={faUserShield} />
-                          <span>Yönetici</span>
+                          <span>{t('users.role_admin')}</span>
                         </span>
                       ) : (
                         <span className="status-pill sm status-neutral">
                           <FontAwesomeIcon icon={faEye} />
-                          <span>Gözlemci</span>
+                          <span>{t('users.role_viewer')}</span>
                         </span>
                       )}
                     </td>
@@ -289,7 +292,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
 
                     <td>
                       <span className="status-pill sm status-ok">
-                        <span>Aktif</span>
+                        <span>{t('users.status_active')}</span>
                       </span>
                     </td>
 
@@ -299,10 +302,10 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
                           type="button"
                           className="btn-action-sm"
                           onClick={() => setPasswordTarget(u.username)}
-                          title="Şifreyi Güncelle"
+                          title={t('users.tip_password')}
                         >
                           <FontAwesomeIcon icon={faKey} />
-                          <span>Şifre</span>
+                          <span>{t('users.btn_password')}</span>
                         </button>
 
                         <button
@@ -310,11 +313,11 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
                           className="btn-action-sm danger"
                           onClick={() => setDeleteTarget(u.username)}
                           disabled={isSelf}
-                          title={isSelf ? 'Kendi hesabınızı silemezsiniz' : 'Kullanıcıyı Sil'}
+                          title={isSelf ? t('users.tip_delete_self') : t('users.tip_delete')}
                           style={{ opacity: isSelf ? 0.35 : 1 }}
                         >
                           <FontAwesomeIcon icon={faTrash} />
-                          <span>Sil</span>
+                          <span>{t('users.btn_delete')}</span>
                         </button>
                       </div>
                     </td>
@@ -333,13 +336,14 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
             <div className="modal-header">
               <div className="modal-title">
                 <FontAwesomeIcon icon={faUserPlus} />
-                <span>Yeni Kullanıcı Tanımla</span>
+                <span>{t('users.modal_create_title')}</span>
               </div>
               <button
                 type="button"
                 className="util-btn"
                 onClick={() => setCreateModalOpen(false)}
                 disabled={createSubmitting}
+                aria-label={t('common.close')}
               >
                 <FontAwesomeIcon icon={faXmark} />
               </button>
@@ -348,32 +352,32 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
             <form onSubmit={handleCreateUser}>
               <div className="modal-body">
                 <div className="form-group">
-                  <label className="form-label">Kullanıcı Adı</label>
+                  <label className="form-label">{t('users.form_username')}</label>
                   <input
                     type="text"
                     className="form-input"
                     value={newUsername}
                     onChange={(e) => setNewUsername(e.target.value)}
-                    placeholder="ornek_kullanici"
+                    placeholder={t('users.form_username_ph')}
                     required
                     autoFocus
                   />
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Rol & Yetki</label>
+                  <label className="form-label">{t('users.form_role')}</label>
                   <select
                     className="form-select"
                     value={newRole}
                     onChange={(e) => setNewRole(e.target.value as 'admin' | 'viewer')}
                   >
-                    <option value="viewer">Gözlemci (Viewer) — Yalnızca Metrik ve Log İzleme</option>
-                    <option value="admin">Yönetici (Admin) — Tam Erişim & Remediation Yetkisi</option>
+                    <option value="viewer">{t('users.role_viewer_desc')}</option>
+                    <option value="admin">{t('users.role_admin_desc')}</option>
                   </select>
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Şifre</label>
+                  <label className="form-label">{t('users.form_password')}</label>
                   <input
                     type="password"
                     className="form-input"
@@ -382,11 +386,11 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
                     placeholder="••••••••"
                     required
                   />
-                  <span className="form-helper">En az 6 karakter olmalıdır.</span>
+                  <span className="form-helper">{t('users.form_password_help')}</span>
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Şifre Tekrar</label>
+                  <label className="form-label">{t('users.form_confirm_password')}</label>
                   <input
                     type="password"
                     className="form-input"
@@ -405,10 +409,10 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
                   onClick={() => setCreateModalOpen(false)}
                   disabled={createSubmitting}
                 >
-                  İptal
+                  {t('common.cancel')}
                 </button>
                 <button type="submit" className="btn-primary" style={{ width: 'auto' }} disabled={createSubmitting}>
-                  {createSubmitting ? 'Kaydediliyor...' : 'Kullanıcıyı Oluştur'}
+                  {createSubmitting ? t('users.btn_creating') : t('users.btn_create')}
                 </button>
               </div>
             </form>
@@ -423,13 +427,14 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
             <div className="modal-header">
               <div className="modal-title">
                 <FontAwesomeIcon icon={faKey} />
-                <span>Şifre Güncelle: {passwordTarget}</span>
+                <span>{t('users.modal_pw_title', { username: passwordTarget })}</span>
               </div>
               <button
                 type="button"
                 className="util-btn"
                 onClick={() => setPasswordTarget(null)}
                 disabled={passwordSubmitting}
+                aria-label={t('common.close')}
               >
                 <FontAwesomeIcon icon={faXmark} />
               </button>
@@ -438,7 +443,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
             <form onSubmit={handleChangePassword}>
               <div className="modal-body">
                 <div className="form-group">
-                  <label className="form-label">Yeni Şifre</label>
+                  <label className="form-label">{t('users.form_new_pw')}</label>
                   <input
                     type="password"
                     className="form-input"
@@ -448,11 +453,11 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
                     required
                     autoFocus
                   />
-                  <span className="form-helper">En az 6 karakter girilmelidir.</span>
+                  <span className="form-helper">{t('users.form_new_pw_help')}</span>
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Yeni Şifre Tekrar</label>
+                  <label className="form-label">{t('users.form_new_pw_confirm')}</label>
                   <input
                     type="password"
                     className="form-input"
@@ -471,10 +476,10 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
                   onClick={() => setPasswordTarget(null)}
                   disabled={passwordSubmitting}
                 >
-                  İptal
+                  {t('common.cancel')}
                 </button>
                 <button type="submit" className="btn-primary" style={{ width: 'auto' }} disabled={passwordSubmitting}>
-                  {passwordSubmitting ? 'Güncelleniyor...' : 'Şifreyi Güncelle'}
+                  {passwordSubmitting ? t('users.btn_updating_pw') : t('users.btn_update_pw')}
                 </button>
               </div>
             </form>
@@ -485,9 +490,9 @@ export const UserManagement: React.FC<UserManagementProps> = ({ currentUser }) =
       {/* Modal: Kullanıcı Silme Onayı */}
       <ConfirmationModal
         isOpen={Boolean(deleteTarget)}
-        title="Kullanıcıyı Sil"
-        message={`${deleteTarget} kullanıcısının sisteme erişim yetkisi tamamen kaldırılacaktır. Bu işlemi onaylıyor musunuz?`}
-        confirmLabel="Kullanıcıyı Sil"
+        title={t('users.modal_delete_title')}
+        message={t('users.modal_delete_msg', { username: deleteTarget || '' })}
+        confirmLabel={t('users.modal_delete_confirm')}
         isDanger={true}
         isLoading={deleteSubmitting}
         onConfirm={handleDeleteUser}

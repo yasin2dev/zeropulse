@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faCube,
@@ -11,6 +12,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { ContainerCard } from '../types';
 import { ConfirmationModal } from './ConfirmationModal';
+import { formatBytes } from '../i18n';
 
 interface ContainerGridProps {
   containers: ContainerCard[];
@@ -18,19 +20,12 @@ interface ContainerGridProps {
   actionLoading: boolean;
 }
 
-function formatBytes(bytes: number): string {
-  if (bytes === 0) return '0 B';
-  const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
-}
-
 export const ContainerGrid: React.FC<ContainerGridProps> = ({
   containers,
   onRestartContainer,
   actionLoading,
 }) => {
+  const { t } = useTranslation();
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<'all' | 'unhealthy' | 'healthy'>('all');
   const [selectedForRestart, setSelectedForRestart] = useState<ContainerCard | null>(null);
@@ -63,12 +58,12 @@ export const ContainerGrid: React.FC<ContainerGridProps> = ({
 
     if (res.success) {
       setFeedbackMsg({
-        text: `Konteyner ${target.name} başarıyla yeniden başlatıldı.`,
+        text: t('containers.toast_success', { name: target.name }),
         isError: false,
       });
     } else {
       setFeedbackMsg({
-        text: `Yeniden başlatma başarısız: ${res.message}`,
+        text: t('containers.toast_failed', { message: res.message || '' }),
         isError: true,
       });
     }
@@ -81,8 +76,8 @@ export const ContainerGrid: React.FC<ContainerGridProps> = ({
       <div className="section-header">
         <h2 className="section-title">
           <FontAwesomeIcon icon={faCube} style={{ opacity: 0.8 }} />
-          <span>Konteyner İş Yükleri</span>
-          <span className="section-count">({containers.length} Toplam)</span>
+          <span>{t('containers.title')}</span>
+          <span className="section-count">{t('containers.total_count', { count: containers.length })}</span>
         </h2>
 
         <div className="controls-group">
@@ -91,7 +86,7 @@ export const ContainerGrid: React.FC<ContainerGridProps> = ({
             <input
               type="text"
               className="search-input"
-              placeholder="İsim, ID veya İmaj ara..."
+              placeholder={t('containers.search_placeholder')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -101,23 +96,27 @@ export const ContainerGrid: React.FC<ContainerGridProps> = ({
             className={`filter-btn ${filter === 'all' ? 'active' : ''}`}
             onClick={() => setFilter('all')}
           >
-            Tümü ({containers.length})
+            {t('containers.filter_all', { count: containers.length })}
           </button>
           <button
             className={`filter-btn ${filter === 'unhealthy' ? 'active' : ''}`}
             onClick={() => setFilter('unhealthy')}
           >
-            Uyarı/Kritik (
-            {containers.filter((c) => c.health_status === 'warning' || c.health_status === 'critical').length}
-            )
+            {t('containers.filter_unhealthy', {
+              count: containers.filter(
+                (c) => c.health_status === 'warning' || c.health_status === 'critical'
+              ).length,
+            })}
           </button>
           <button
             className={`filter-btn ${filter === 'healthy' ? 'active' : ''}`}
             onClick={() => setFilter('healthy')}
           >
-            Normal (
-            {containers.filter((c) => c.health_status === 'ok' || c.health_status === 'cooldown').length}
-            )
+            {t('containers.filter_healthy', {
+              count: containers.filter(
+                (c) => c.health_status === 'ok' || c.health_status === 'cooldown'
+              ).length,
+            })}
           </button>
         </div>
       </div>
@@ -143,19 +142,19 @@ export const ContainerGrid: React.FC<ContainerGridProps> = ({
         <table className="data-table">
           <thead>
             <tr>
-              <th>Konteyner & İmaj</th>
-              <th>CPU Kullanımı</th>
-              <th>Bellek (RAM)</th>
-              <th>CFS Throttling</th>
-              <th>Durum</th>
-              <th>İşlem</th>
+              <th>{t('containers.th_name')}</th>
+              <th>{t('containers.th_cpu')}</th>
+              <th>{t('containers.th_mem')}</th>
+              <th>{t('containers.th_throttling')}</th>
+              <th>{t('containers.th_status')}</th>
+              <th>{t('containers.th_action')}</th>
             </tr>
           </thead>
           <tbody>
             {filteredContainers.length === 0 ? (
               <tr>
                 <td colSpan={6} className="empty-state">
-                  Filtreye uygun konteyner bulunamadı.
+                  {t('containers.empty')}
                 </td>
               </tr>
             ) : (
@@ -175,16 +174,16 @@ export const ContainerGrid: React.FC<ContainerGridProps> = ({
                 const throttledMs = (c.cpu_throttled_time_ns / 1_000_000).toFixed(0);
 
                 let statusIcon = faCircleCheck;
-                let statusLabel = 'Normal';
+                let statusLabel = t('containers.status_ok');
                 if (c.health_status === 'warning') {
                   statusIcon = faTriangleExclamation;
-                  statusLabel = 'Uyarı';
+                  statusLabel = t('containers.status_warning');
                 } else if (c.health_status === 'critical') {
                   statusIcon = faCircleExclamation;
-                  statusLabel = 'Kritik';
+                  statusLabel = t('containers.status_critical');
                 } else if (c.health_status === 'cooldown') {
                   statusIcon = faClock;
-                  statusLabel = 'Beklemede';
+                  statusLabel = t('containers.status_cooldown');
                 }
 
                 return (
@@ -230,10 +229,15 @@ export const ContainerGrid: React.FC<ContainerGridProps> = ({
                       <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem' }}>
                         {c.cpu_throttled_periods > 0 ? (
                           <span style={{ color: 'var(--status-warn)' }}>
-                            {c.cpu_throttled_periods} p ({throttledMs}ms)
+                            {t('containers.periods_count', {
+                              count: c.cpu_throttled_periods,
+                              ms: throttledMs,
+                            })}
                           </span>
                         ) : (
-                          <span style={{ color: 'var(--text-muted)' }}>0 periyot</span>
+                          <span style={{ color: 'var(--text-muted)' }}>
+                            {t('containers.periods_zero')}
+                          </span>
                         )}
                       </div>
                     </td>
@@ -250,10 +254,10 @@ export const ContainerGrid: React.FC<ContainerGridProps> = ({
                         className="btn-action-sm"
                         onClick={() => setSelectedForRestart(c)}
                         disabled={actionLoading}
-                        title="Konteyneri manuel olarak yeniden başlat"
+                        title={t('containers.restart_title')}
                       >
                         <FontAwesomeIcon icon={faRotateRight} />
-                        <span>Yeniden Başlat</span>
+                        <span>{t('containers.restart_btn')}</span>
                       </button>
                     </td>
                   </tr>
@@ -266,12 +270,12 @@ export const ContainerGrid: React.FC<ContainerGridProps> = ({
 
       <ConfirmationModal
         isOpen={Boolean(selectedForRestart)}
-        title="Konteyneri Yeniden Başlat"
-        message={`${selectedForRestart?.name} (${selectedForRestart?.id.slice(
-          0,
-          12
-        )}) konteynerini derhal yeniden başlatmak istediğinizden emin misiniz? Çalışan işlemler geçici olarak kesintiye uğrayacaktır.`}
-        confirmLabel="Evet, Yeniden Başlat"
+        title={t('containers.modal_title')}
+        message={t('containers.modal_message', {
+          name: selectedForRestart?.name,
+          id: selectedForRestart?.id.slice(0, 12),
+        })}
+        confirmLabel={t('containers.modal_confirm')}
         isDanger={true}
         isLoading={actionLoading}
         onConfirm={handleConfirmRestart}

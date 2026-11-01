@@ -431,6 +431,44 @@ td {
   box-shadow: var(--shadow-sm);
 }
 
+.lang-segmented-control {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px;
+  background-color: var(--surface-2);
+  border-radius: var(--r-pill);
+  gap: 2px;
+}
+
+.lang-segment {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+  height: 30px;
+  padding: 0 8px;
+  border: none;
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  transition: all var(--dur-fast) var(--ease-out);
+}
+
+.lang-segment:hover {
+  color: var(--text);
+}
+
+.lang-segment.active {
+  background-color: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-sm);
+}
+
 .operator-badge {
   display: inline-flex;
   align-items: center;
