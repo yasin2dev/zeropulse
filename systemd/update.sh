@@ -21,7 +21,7 @@ if [ "$EUID" -ne 0 ]; then
 fi
 
 echo -e "${YELLOW}1. Kaynak kod derleniyor...${NC}"
-(cd "$PROJECT_ROOT" && npm --prefix ui run build && go build -ldflags="-s -w" -o bin/zeropulse ./cmd/agent)
+(cd "$PROJECT_ROOT" && npm --prefix ui run build && go build -tags embedui -ldflags="-s -w" -o bin/zeropulse ./cmd/agent)
 
 echo -e "${YELLOW}2. Servis güncelleniyor...${NC}"
 exec "$SCRIPT_DIR/install.sh"

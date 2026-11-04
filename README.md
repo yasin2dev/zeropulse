@@ -37,14 +37,20 @@ Zeropulse, Docker konteynerleri ve Standalone (bare-metal / VM) Linux ve FreeBSD
 
 ## Derleme (Build)
 
-Projeyi derlemek için Go 1.22+ gereklidir:
+Go 1.27+ gereklidir. Yalnızca ajan ve API için:
 
 ```bash
-# Proje kök dizininde iken
 go build -o zeropulse ./cmd/agent
 ```
 
-Derleme sonucunda çalıştırılabilir `zeropulse` binary'si oluşturulur.
+Panel gömülü tek binary için Node.js 20+ da gerekir:
+
+```bash
+npm --prefix ui ci
+make build   # çıktı: bin/zeropulse
+```
+
+Docker ile çalıştırmak için `docker compose up --build` yeterlidir.
 
 ---
 

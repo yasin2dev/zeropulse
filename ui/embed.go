@@ -1,3 +1,5 @@
+//go:build embedui
+
 // Package ui provides embedded static assets for the Zeropulse Edge Dashboard.
 package ui
 

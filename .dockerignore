@@ -1,0 +1,10 @@
+.git
+.kiro
+bin
+data
+docs
+specs
+systemd
+web
+**/dist
+**/node_modules

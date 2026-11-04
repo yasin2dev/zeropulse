@@ -17,13 +17,13 @@ ui:
 	cd ui && npm run build
 
 agent:
-	go build -ldflags="-s -w" -o bin/zeropulse ./cmd/agent
+	go build -tags embedui -ldflags="-s -w" -o bin/zeropulse ./cmd/agent
 
 build: ui agent
 
 test:
-	go test -v ./...
 	cd ui && npm run build
+	go test -v -tags embedui ./...
 
 install: build
 	./systemd/install.sh

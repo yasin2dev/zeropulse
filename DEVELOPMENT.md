@@ -26,7 +26,7 @@ Bu doküman; Zeropulse Ajanı (`zeropulse-agent`), Edge Yönetim Paneli (`ui/`) 
 
 Lokal geliştirme ve testler için makinenizde aşağıdaki araçların kurulu olması tavsiye edilir:
 
-- **Go:** `v1.22` veya üzeri (`go version`)
+- **Go:** `v1.27` veya üzeri (`go version`)
 - **Node.js & npm:** Node `v18+` / `v20+` ve npm `v9+` (`node -v`, `npm -v`)
 - **Docker & Docker Compose:** Docker `v24+` (`docker compose version`)
 - **cURL:** Terminal üzerinden HTTP ve SSE akışlarını test etmek için
@@ -164,6 +164,10 @@ Konteyner ortamında çalıştırmak isteyenler için:
 ```bash
 docker compose up --build
 ```
+Panel `http://localhost:8080` adresinde açılır. Kurulum anahtarı için: `docker compose logs zeropulse | grep setup_token`
+
+Compose dosyası Docker soketini bağlar; bu, host üzerindeki Docker'a root eşdeğeri yetki verir.
+
 Durdurmak için: `docker compose down`
 
 ---

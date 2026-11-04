@@ -37,7 +37,7 @@ fi
 # 1. Binary Derleme Kontrolü
 if [ ! -f "$BINARY_SOURCE" ]; then
   echo -e "${BLUE}▶ Binary bulunamadı, derleniyor...${NC}"
-  (cd "$PROJECT_ROOT" && npm --prefix ui run build && go build -ldflags="-s -w" -o bin/zeropulse ./cmd/agent)
+  (cd "$PROJECT_ROOT" && npm --prefix ui run build && go build -tags embedui -ldflags="-s -w" -o bin/zeropulse ./cmd/agent)
 fi
 
 # 2. Mevcut Binary'yi Yedekle ve Yenisini Yükle
