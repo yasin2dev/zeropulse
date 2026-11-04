@@ -28,7 +28,7 @@ export const NAV_COLUMNS: NavColumn[] = [
       { label: 'Metrikler & Çıktı', href: '#telemetri' },
       { label: 'Kural Oluşturucu', href: '/studyo' },
       { label: 'Sık Sorulan Sorular', href: '#sss' },
-      { label: 'GitHub Repo', href: 'https://github.com/zeropulse/zeropulse' },
+      { label: 'GitHub Repo', href: 'https://github.com/yasin2dev/zeropulse' },
     ],
   },
 ];
@@ -51,7 +51,7 @@ export const HERO_CONTENT = {
     'StateTracker',
     'CooldownTracker',
     'Dry-Run Simülasyonu',
-    'Self-Healing (RESTART / SCALE)',
+    'Self-Healing (RESTART)',
     'JSONL stdout Akışı',
   ],
 };
@@ -70,7 +70,7 @@ export const OVERVIEW_CONTENT = {
     },
     {
       title: 'Nasıl Müdahale Etmeli?',
-      text: 'Alarm fırtınasına (flapping) girmeden nasıl güvenli aksiyon (NOTIFY, RESTART, SCALE) tetiklersin?',
+      text: 'Alarm fırtınasına (flapping) girmeden nasıl güvenli aksiyon (NOTIFY, RESTART) tetiklersin?',
     },
   ],
   screen: {
@@ -113,7 +113,7 @@ export const HOW_IT_WORKS_CONTENT = {
         {
           n: 4,
           title: 'Dry-Run & Otonom Aksiyon',
-          text: 'Kuralları --dry-run modunda güvenle simüle et; hazır olduğunda NOTIFY, RESTART veya SCALE aksiyonlarıyla kendi kendini iyileştiren (self-healing) yapı kur.',
+          text: 'Kuralları --dry-run modunda güvenle simüle et; hazır olduğunda NOTIFY veya RESTART aksiyonlarıyla kendi kendini iyileştiren (self-healing) yapı kur.',
         },
       ],
     },
@@ -266,7 +266,7 @@ export const OPERATING_MODES_CONTENT: {
     {
       icon: 'rocket',
       title: 'Remediation (Self-Healing)',
-      text: 'Ardışık eşik aşıldığında ve cooldown uygun olduğunda NOTIFY, RESTART veya SCALE aksiyonlarını otomatik tetikler.',
+      text: 'Ardışık eşik aşıldığında ve cooldown uygun olduğunda olayı panele ve JSONL akışına yazar (NOTIFY) ya da adı verilen konteyneri yeniden başlatır (RESTART).',
     },
     {
       icon: 'presentationChart',
@@ -354,7 +354,7 @@ export interface RulePreset {
   operator: 'GT' | 'GTE';
   threshold: number;
   consecutive_periods: number;
-  action: 'NOTIFY' | 'RESTART' | 'SCALE';
+  action: 'NOTIFY' | 'RESTART';
   cooldown_seconds: number;
   container_filter: string;
   dry_run: boolean;
@@ -395,7 +395,7 @@ export const RULE_PRESETS: RulePreset[] = [
     operator: 'GTE',
     threshold: 90.0,
     consecutive_periods: 2,
-    action: 'SCALE',
+    action: 'NOTIFY',
     cooldown_seconds: 120,
     container_filter: 'worker-node',
     dry_run: true,
@@ -457,7 +457,7 @@ export const FOOTER_CONTENT = {
   social: [
     {
       label: 'Zeropulse GitHub',
-      href: 'https://github.com/zeropulse/zeropulse',
+      href: 'https://github.com/yasin2dev/zeropulse',
       icon: 'github' as IconName,
     },
   ],

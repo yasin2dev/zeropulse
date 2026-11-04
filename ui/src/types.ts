@@ -99,7 +99,7 @@ export type MetricType =
 
 export type RuleOperator = 'GT' | 'GTE';
 
-export type RuleAction = 'RESTART' | 'NOTIFY' | 'SCALE';
+export type RuleAction = 'RESTART' | 'NOTIFY';
 
 export interface CustomRule {
   name: string;

@@ -256,7 +256,6 @@ export const tr = {
     form_action: 'Aksiyon *',
     action_restart: 'Yeniden Başlat (RESTART)',
     action_notify: 'Yalnızca Uyar (NOTIFY)',
-    action_scale: 'Ölçekleme Talebi (SCALE)',
     form_cooldown: 'Cooldown Süresi (sn) *',
     form_cooldown_help: 'Flapping koruma süresi.',
     form_filter: 'Konteyner Filtresi (Opsiyonel)',

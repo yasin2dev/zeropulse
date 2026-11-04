@@ -1,6 +1,6 @@
 [Unit]
 Description=Zeropulse - Edge Observability & Self-Healing Agent
-Documentation=https://github.com/zeropulse/zeropulse
+Documentation=https://github.com/yasin2dev/zeropulse
 After=network.target docker.service
 Wants=docker.service
 

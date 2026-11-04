@@ -211,7 +211,6 @@ export function RuleStudio() {
             >
               <option value="NOTIFY">NOTIFY</option>
               <option value="RESTART">RESTART</option>
-              <option value="SCALE">SCALE</option>
             </select>
           </div>
 

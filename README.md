@@ -104,7 +104,7 @@ JSON formatında kural dosyası kullanımı:
 | `operator` | enum | Evet | `GT` (büyüktür `>`), `GTE` (büyük eşittir `>=`). |
 | `threshold` | float64 | Evet | Karşılaştırma eşik değeri ($\ge 0$). |
 | `consecutive_periods` | int | Evet | Anomali üretilmesi için gereken ardışık ihlal sayısı ($\ge 1$). |
-| `action` | enum | Evet | Tetiklenecek aksiyon: `NOTIFY`, `RESTART`, `SCALE`. |
+| `action` | enum | Evet | `NOTIFY`: olayı panele ve JSONL akışına yazar; dış bildirim henüz yok. `RESTART`: adı verilen konteyneri yeniden başlatır (yalnızca Docker). |
 | `cooldown_seconds` | int | Hayır | İki tetiklenme arasında geçmesi gereken asgari süre saniye cinsinden ($\ge 0$, varsayılan `0`). |
 | `container_filter` | string | `RESTART` için evet | Hedef konteyner adı. `NOTIFY` kurallarında boş bırakılırsa tüm konteynerlere uygulanır; `RESTART` kuralları boş bırakılamaz. |
 

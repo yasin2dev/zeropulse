@@ -104,3 +104,17 @@ func TestRestartRuleRequiresContainerFilter(t *testing.T) {
 		t.Errorf("expected NOTIFY rule without filter to be valid: %v", err)
 	}
 }
+
+func TestScaleActionIsRejectedUntilImplemented(t *testing.T) {
+	rule := Rule{
+		Name:               "scale-rule",
+		MetricType:         MetricCPUPercent,
+		Operator:           OperatorGT,
+		Threshold:          90,
+		ConsecutivePeriods: 3,
+		Action:             "SCALE",
+	}
+	if err := rule.Validate(); err == nil {
+		t.Error("expected SCALE to be rejected because no code executes it")
+	}
+}

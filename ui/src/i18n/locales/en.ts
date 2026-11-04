@@ -256,7 +256,6 @@ export const en = {
     form_action: 'Action *',
     action_restart: 'Restart Container (RESTART)',
     action_notify: 'Notify Only (NOTIFY)',
-    action_scale: 'Request Scale (SCALE)',
     form_cooldown: 'Cooldown Period (s) *',
     form_cooldown_help: 'Flapping protection duration.',
     form_filter: 'Container Filter (Optional)',
