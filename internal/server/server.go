@@ -152,7 +152,8 @@ func NewServer(cfg ServerConfig, env collector.Environment, logger *slog.Logger)
 		logger.Warn("ui assets not available", "error", err)
 	}
 
-	handler := s.corsMiddleware(s.authMiddleware(mux))
+	// The dashboard is same-origin, so browsers get no cross-site access to the agent.
+	handler := http.NewCrossOriginProtection().Handler(s.authMiddleware(mux))
 
 	s.httpServer = &http.Server{
 		Addr:         cfg.Addr,
@@ -852,21 +853,6 @@ func (s *Server) handleUserActions(w http.ResponseWriter, r *http.Request) {
 // ────────────────────────────────────────────────────────────────────────────
 // Middleware
 // ────────────────────────────────────────────────────────────────────────────
-
-func (s *Server) corsMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")
-
-		if r.Method == http.MethodOptions {
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-
-		next.ServeHTTP(w, r)
-	})
-}
 
 func (s *Server) authMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

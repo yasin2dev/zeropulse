@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -484,3 +485,48 @@ func TestRulesEndpoint_CRUD(t *testing.T) {
 
 
 
+
+func TestCrossOriginProtection(t *testing.T) {
+	srv := NewServer(ServerConfig{Addr: "127.0.0.1:0"}, collector.EnvDocker, newTestLogger())
+
+	post := func(headers map[string]string) *httptest.ResponseRecorder {
+		req := httptest.NewRequest(http.MethodPost, "http://127.0.0.1:8080/api/v1/config/dry-run", strings.NewReader(`{"dry_run":false}`))
+		req.Header.Set("Content-Type", "text/plain")
+		for k, v := range headers {
+			req.Header.Set(k, v)
+		}
+		rec := httptest.NewRecorder()
+		srv.httpServer.Handler.ServeHTTP(rec, req)
+		return rec
+	}
+
+	blocked := []map[string]string{
+		{"Sec-Fetch-Site": "cross-site"},
+		{"Origin": "https://evil.example"},
+	}
+	for _, headers := range blocked {
+		if rec := post(headers); rec.Code != http.StatusForbidden {
+			t.Errorf("headers %v: expected 403, got %d", headers, rec.Code)
+		}
+	}
+
+	allowed := []map[string]string{
+		nil, // non-browser client such as curl
+		{"Sec-Fetch-Site": "same-origin"},
+		{"Origin": "http://127.0.0.1:8080"},
+		{"Origin": "http://localhost:3000", "Sec-Fetch-Site": "same-origin"}, // Vite dev proxy
+	}
+	for _, headers := range allowed {
+		if rec := post(headers); rec.Code != http.StatusOK {
+			t.Errorf("headers %v: expected 200, got %d: %s", headers, rec.Code, rec.Body.String())
+		}
+	}
+
+	req := httptest.NewRequest(http.MethodOptions, "/api/v1/status", nil)
+	req.Header.Set("Origin", "https://evil.example")
+	rec := httptest.NewRecorder()
+	srv.httpServer.Handler.ServeHTTP(rec, req)
+	if got := rec.Header().Get("Access-Control-Allow-Origin"); got != "" {
+		t.Errorf("expected no CORS allow header, got %q", got)
+	}
+}
