@@ -59,10 +59,8 @@ Tarayıcınızdan yönetim paneline erişin:
 Ajanın Docker çöküşlerinden etkilenmeden işletim sistemi düzeyinde bir daemon olarak çalışması için:
 
 ```bash
-# Otomatik kurulum betiğini çalıştırın (root yetkisi gereklidir)
-sudo ./systemd/install.sh
-# veya
-sudo make install
+# sudo olmadan çalıştırın: derleme sizin kullanıcınızla yapılır, parola yalnızca kurulumda sorulur
+make install
 ```
 
 Bu betik:
@@ -73,9 +71,8 @@ Bu betik:
 **Güncelleme (Mevcut Kurulumu Güncelleme):**
 Kodda veya UI'da değişiklik yaptıktan sonra çalışan servisi tek komutla güncellemek için:
 ```bash
-sudo ./systemd/update.sh
-# veya
-sudo make update
+# sudo olmadan çalıştırın
+make update
 ```
 *Bu komut projeyi yeniden derler, eski binary'yi `.old` olarak yedekler, mevcut ayarlarınızı (`/etc/zeropulse/zeropulse.env`) korur ve çalışan servisi kesintisizce yeniden başlatır.*
 

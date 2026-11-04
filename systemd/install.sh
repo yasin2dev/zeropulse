@@ -11,7 +11,7 @@ NC='\033[0m'
 # Root yetkisi kontrolü
 if [ "$EUID" -ne 0 ]; then
   echo -e "${RED}Hata: Bu betik root yetkisiyle (sudo) çalıştırılmalıdır.${NC}"
-  echo -e "Kullanım: sudo $0"
+  echo -e "Derleyip kurmak için sudo olmadan: make install"
   exit 1
 fi
 
@@ -34,10 +34,11 @@ else
   echo -e "${BLUE}=== Zeropulse Yeni Kurulum (Install) ===${NC}"
 fi
 
-# 1. Binary Derleme Kontrolü
+# 1. Binary Kontrolü (root ortamında go ve npm bulunmayabilir, bu yüzden burada derlenmez)
 if [ ! -f "$BINARY_SOURCE" ]; then
-  echo -e "${BLUE}▶ Binary bulunamadı, derleniyor...${NC}"
-  (cd "$PROJECT_ROOT" && npm --prefix ui run build && go build -tags embedui -ldflags="-s -w" -o bin/zeropulse ./cmd/agent)
+  echo -e "${RED}Hata: $BINARY_SOURCE bulunamadı.${NC}"
+  echo -e "Derleyip kurmak için sudo olmadan: make install"
+  exit 1
 fi
 
 # 2. Mevcut Binary'yi Yedekle ve Yenisini Yükle
@@ -58,7 +59,8 @@ if [ ! -f /etc/zeropulse/zeropulse.env ]; then
   chmod 600 /etc/zeropulse/zeropulse.env
   echo -e "${GREEN}✓ /etc/zeropulse/zeropulse.env oluşturuldu.${NC}"
 else
-  echo -e "${GREEN}✓ Mevcut /etc/zeropulse/zeropulse.env korundu (üzerine yazılmadı).${NC}"
+  echo -e "${GREEN}✓ Mevcut /etc/zeropulse/zeropulse.env korundu (üzerine yazılmadı):${NC}"
+  grep -E '^ZEROPULSE_(LISTEN_ADDR|DRY_RUN)=' /etc/zeropulse/zeropulse.env || true
 fi
 
 if [ ! -f /etc/zeropulse/rules.yaml ] && [ ! -f /etc/zeropulse/rules.json ]; then
@@ -101,7 +103,9 @@ if systemctl is-active --quiet "$SERVICE_NAME"; then
   echo -e "${GREEN}====================================================${NC}"
   echo -e "Durum:      ${GREEN}Çalışıyor (Active)${NC}"
   echo -e "Web Paneli: http://localhost:8080"
-  echo -e "Kurulum anahtarı: journalctl -u zeropulse | grep setup_token"
+  if [ "$IS_UPDATE" = false ]; then
+    echo -e "Kurulum anahtarı: journalctl -u zeropulse | grep setup_token"
+  fi
   echo -e "Log Takibi: journalctl -u $SERVICE_NAME -f"
 else
   echo -e "${RED}UYARI: Servis başlatılamadı. journalctl -u $SERVICE_NAME -n 50 ile logları inceleyin.${NC}"
