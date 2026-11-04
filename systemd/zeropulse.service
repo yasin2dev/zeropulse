@@ -10,7 +10,7 @@ User=root
 Group=root
 
 # Çalıştırılabilir dosya konumu
-ExecStart=/usr/local/bin/zeropulse --listen-addr 0.0.0.0:8080 --data-dir /var/lib/zeropulse
+ExecStart=/usr/local/bin/zeropulse --data-dir /var/lib/zeropulse
 
 # Ortam değişkenleri yapılandırma dosyası
 EnvironmentFile=-/etc/zeropulse/zeropulse.env

@@ -87,6 +87,10 @@ func (r Rule) Validate() error {
 		return fmt.Errorf("rule %q: unknown action %q; must be one of RESTART, NOTIFY, SCALE", r.Name, r.Action)
 	}
 
+	if r.Action == ActionRestart && strings.TrimSpace(r.ContainerFilter) == "" {
+		return fmt.Errorf("rule %q: RESTART requires container_filter so only a named container is restarted", r.Name)
+	}
+
 	if r.Threshold < 0 {
 		return fmt.Errorf("rule %q: threshold must be >= 0, got %g", r.Name, r.Threshold)
 	}

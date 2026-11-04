@@ -333,8 +333,8 @@ Ajan bayrakları (CLI flags) veya eşdeğer ortam değişkenleri ile yapılandı
 
 | CLI Bayrağı | Çevre Değişkeni | Varsayılan | Açıklama |
 |---|---|---|---|
-| `--listen-addr` | `ZEROPULSE_LISTEN_ADDR` | `0.0.0.0:9180` | Dahili HTTP API ve SSE sunucusunun dinleyeceği adres |
-| `--dry-run` | `ZEROPULSE_DRY_RUN` | `false` | `true` ise self-healing aksiyonları sadece simüle edilir |
+| `--listen-addr` | `ZEROPULSE_LISTEN_ADDR` | `127.0.0.1:8080` | Dahili HTTP API ve SSE sunucusunun dinleyeceği adres |
+| `--dry-run` | `ZEROPULSE_DRY_RUN` | `true` | `RESTART` kuralları yalnızca simüle edilir; çalıştırmak için `--dry-run=false` verin |
 | `--cpu-threshold` | `ZEROPULSE_CPU_THRESHOLD` | `80.0` | CPU doygunluğu eşik yüzdesi |
 | `--mem-threshold` | `ZEROPULSE_MEM_THRESHOLD` | `85.0` | Kritik bellek eşik yüzdesi |
 | `--cooldown` | `ZEROPULSE_COOLDOWN` | `60s` | Konteyner başına flapping önleme bekleme süresi |
@@ -362,7 +362,7 @@ Veya geliştirme testlerinde soket izinlerini geçici olarak kontrol edin (`ls -
 lsof -i :8080 || lsof -i :9180
 
 # Farklı bir port ile ajanı başlatın
-go run ./cmd/agent --listen-addr 0.0.0.0:9190
+go run ./cmd/agent --listen-addr 127.0.0.1:9190
 ```
 
 ### Sorun: Vite UI açılıyor fakat metrikler akmıyor (RECONNECTING / OFFLINE)

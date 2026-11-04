@@ -75,3 +75,32 @@ func TestUnknownMetricTypeValidation(t *testing.T) {
 		}
 	})
 }
+
+func TestRestartRuleRequiresContainerFilter(t *testing.T) {
+	rule := Rule{
+		Name:               "restart-rule",
+		MetricType:         MetricMemPercent,
+		Operator:           OperatorGT,
+		Threshold:          90,
+		ConsecutivePeriods: 3,
+		Action:             ActionRestart,
+	}
+
+	for _, filter := range []string{"", "   "} {
+		rule.ContainerFilter = filter
+		if err := rule.Validate(); err == nil {
+			t.Errorf("expected error for RESTART rule with filter %q", filter)
+		}
+	}
+
+	rule.ContainerFilter = "api-server"
+	if err := rule.Validate(); err != nil {
+		t.Errorf("expected targeted RESTART rule to be valid: %v", err)
+	}
+
+	rule.Action = ActionNotify
+	rule.ContainerFilter = ""
+	if err := rule.Validate(); err != nil {
+		t.Errorf("expected NOTIFY rule without filter to be valid: %v", err)
+	}
+}

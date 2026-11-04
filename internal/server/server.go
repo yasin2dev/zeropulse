@@ -104,7 +104,7 @@ type Server struct {
 // NewServer initializes a new Server.
 func NewServer(cfg ServerConfig, env collector.Environment, logger *slog.Logger) *Server {
 	if cfg.Addr == "" {
-		cfg.Addr = "0.0.0.0:8080"
+		cfg.Addr = "127.0.0.1:8080"
 	}
 	hub := NewSSEHub(logger)
 	audit := NewAuditLog(100)
