@@ -7,6 +7,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/url"
 	"time"
 )
 
@@ -103,11 +104,20 @@ func CollectDocker() (*DockerSnapshot, error) {
 	}, nil
 }
 
+const (
+	// restartStopGraceSeconds is how long Docker waits after SIGTERM before SIGKILL.
+	restartStopGraceSeconds = 10
+	// restartRequestTimeout outlasts the stop grace period: Docker answers only
+	// after the container has stopped and started again.
+	restartRequestTimeout = 60 * time.Second
+)
+
 // RestartContainer requests the Docker daemon to restart a given container by its ID or Name.
 func RestartContainer(ctx context.Context, containerID string) error {
 	client := newDockerHTTPClient()
-	url := fmt.Sprintf("http://localhost/v1.41/containers/%s/restart?t=10", containerID)
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, nil)
+	client.Timeout = restartRequestTimeout
+	endpoint := fmt.Sprintf("http://localhost/v1.41/containers/%s/restart?t=%d", url.PathEscape(containerID), restartStopGraceSeconds)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, nil)
 	if err != nil {
 		return fmt.Errorf("build restart request: %w", err)
 	}

@@ -12,6 +12,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strconv"
+	"sync"
 	"syscall"
 	"time"
 
@@ -36,6 +37,33 @@ const (
 // Only explicit RESTART rules qualify; RESTART_SUGGESTED is advice from the built-in checks.
 func shouldExecuteRestart(action string, dryRun bool) bool {
 	return !dryRun && action == string(config.ActionRestart)
+}
+
+// restartTracker prevents overlapping restarts of the same container.
+type restartTracker struct {
+	mu     sync.Mutex
+	active map[string]struct{}
+}
+
+func newRestartTracker() *restartTracker {
+	return &restartTracker{active: make(map[string]struct{})}
+}
+
+// begin claims a container and reports false if a restart is already running.
+func (t *restartTracker) begin(containerID string) bool {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	if _, running := t.active[containerID]; running {
+		return false
+	}
+	t.active[containerID] = struct{}{}
+	return true
+}
+
+func (t *restartTracker) end(containerID string) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	delete(t.active, containerID)
 }
 
 // isLoopbackAddr reports whether a listen address accepts only local connections.
@@ -201,6 +229,8 @@ func main() {
 	}
 	apiServer := server.NewServer(serverCfg, env, logger)
 
+	restarts := newRestartTracker()
+
 	// Forward custom rule anomalies to embedded dashboard audit log and self-healing executor
 	customRuleEngine.SetAnomalyHandler(func(evt ruleengine.AnomalyEvent) {
 		dryRunActive := apiServer.IsDryRun()
@@ -226,17 +256,29 @@ func main() {
 		}
 
 		if shouldExecuteRestart(evt.Action, dryRunActive) && env == collector.EnvDocker {
-			logger.Warn("executing self-healing restart remediation from rule engine", "container_id", evt.ContainerID, "container_name", evt.ContainerName, "rule", evt.RuleName)
-			restartErr := collector.RestartContainer(context.Background(), evt.ContainerID)
-			if restartErr != nil {
-				entry.Status = "REMEDIATION_FAILED"
-				entry.Message += fmt.Sprintf(" | Remediation restart failed: %v", restartErr)
-				logger.Error("self-healing remediation failed", "container_id", evt.ContainerID, "error", restartErr)
-			} else {
-				entry.Status = "ACTION_EXECUTED"
-				entry.Message += " | Container successfully restarted by custom rule engine"
-				logger.Info("self-healing remediation succeeded", "container_id", evt.ContainerID, "rule", evt.RuleName)
+			if !restarts.begin(evt.ContainerID) {
+				logger.Warn("skipping restart; one is already in progress", "container_id", evt.ContainerID, "rule", evt.RuleName)
+				return
 			}
+
+			// A restart can outlast several collection ticks, so it must not hold up metrics.
+			go func() {
+				defer restarts.end(evt.ContainerID)
+
+				logger.Warn("executing self-healing restart remediation from rule engine", "container_id", evt.ContainerID, "container_name", evt.ContainerName, "rule", evt.RuleName)
+				restartErr := collector.RestartContainer(context.Background(), evt.ContainerID)
+				if restartErr != nil {
+					entry.Status = "REMEDIATION_FAILED"
+					entry.Message += fmt.Sprintf(" | Remediation restart failed: %v", restartErr)
+					logger.Error("self-healing remediation failed", "container_id", evt.ContainerID, "error", restartErr)
+				} else {
+					entry.Status = "ACTION_EXECUTED"
+					entry.Message += " | Container successfully restarted by custom rule engine"
+					logger.Info("self-healing remediation succeeded", "container_id", evt.ContainerID, "rule", evt.RuleName)
+				}
+				apiServer.PushAnomaly(entry)
+			}()
+			return
 		}
 
 		apiServer.PushAnomaly(entry)

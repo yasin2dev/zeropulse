@@ -5,7 +5,7 @@ package collector
 
 import "os"
 
-const dockerSocketPath = "/var/run/docker.sock"
+var dockerSocketPath = "/var/run/docker.sock"
 
 // Environment represents the runtime environment type.
 type Environment string

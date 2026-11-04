@@ -220,3 +220,22 @@ func TestIsLoopbackAddr(t *testing.T) {
 		}
 	}
 }
+
+func TestRestartTrackerAllowsOneRestartPerContainer(t *testing.T) {
+	tracker := newRestartTracker()
+
+	if !tracker.begin("a") {
+		t.Fatal("first restart should be allowed")
+	}
+	if tracker.begin("a") {
+		t.Error("overlapping restart should be refused")
+	}
+	if !tracker.begin("b") {
+		t.Error("a different container should not be blocked")
+	}
+
+	tracker.end("a")
+	if !tracker.begin("a") {
+		t.Error("restart should be allowed again after the previous one ends")
+	}
+}
