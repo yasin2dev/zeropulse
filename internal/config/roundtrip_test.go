@@ -24,7 +24,7 @@ func TestConfigRoundTripYAML(t *testing.T) {
 		MetricNetTxBytes,
 	}
 	operators := []Operator{OperatorGT, OperatorGTE}
-	actions := []Action{ActionRestart, ActionNotify, ActionScale}
+	actions := []Action{ActionRestart, ActionNotify}
 
 	rapid.Check(t, func(t *rapid.T) {
 		// Generate a slice of 1–10 valid rules.

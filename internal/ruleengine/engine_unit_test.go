@@ -271,6 +271,7 @@ func TestRuleEngine_DynamicRuleManagement(t *testing.T) {
 		Threshold:          80.0,
 		ConsecutivePeriods: 2,
 		Action:             config.ActionRestart,
+		ContainerFilter:    "web",
 	}
 	if err := engine.AddRule(newRule); err != nil {
 		t.Fatalf("AddRule failed: %v", err)

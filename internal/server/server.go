@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"crypto/rand"
 	"crypto/subtle"
 	"encoding/json"
 	"errors"
@@ -92,6 +93,7 @@ type Server struct {
 	dryRun        bool
 	ruleEngine    *ruleengine.RuleEngine
 	configPath    string
+	setupToken    string // proves first-run setup comes from someone who can read the agent logs
 	saveRules     func(rules []config.Rule) error
 	latestPayload *MetricsEventPayload
 	auditLog      *AuditLog
@@ -104,7 +106,7 @@ type Server struct {
 // NewServer initializes a new Server.
 func NewServer(cfg ServerConfig, env collector.Environment, logger *slog.Logger) *Server {
 	if cfg.Addr == "" {
-		cfg.Addr = "0.0.0.0:8080"
+		cfg.Addr = "127.0.0.1:8080"
 	}
 	hub := NewSSEHub(logger)
 	audit := NewAuditLog(100)
@@ -152,7 +154,15 @@ func NewServer(cfg ServerConfig, env collector.Environment, logger *slog.Logger)
 		logger.Warn("ui assets not available", "error", err)
 	}
 
-	handler := s.corsMiddleware(s.authMiddleware(mux))
+	if s.store != nil {
+		if initialized, err := s.store.IsInitialized(); err == nil && !initialized {
+			s.setupToken = rand.Text()
+			s.logger.Warn("first-run setup required; enter this token in the dashboard", "setup_token", s.setupToken)
+		}
+	}
+
+	// The dashboard is same-origin, so browsers get no cross-site access to the agent.
+	handler := http.NewCrossOriginProtection().Handler(s.authMiddleware(mux))
 
 	s.httpServer = &http.Server{
 		Addr:         cfg.Addr,
@@ -628,11 +638,22 @@ func (s *Server) handleAuthSetup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-		Username string `json:"username"`
-		Password string `json:"password"`
+		Username   string `json:"username"`
+		Password   string `json:"password"`
+		SetupToken string `json:"setup_token"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, "geçersiz istek gövdesi")
+		return
+	}
+
+	s.mu.RLock()
+	setupToken := s.setupToken
+	s.mu.RUnlock()
+
+	if setupToken == "" || subtle.ConstantTimeCompare([]byte(req.SetupToken), []byte(setupToken)) != 1 {
+		s.logger.Warn("rejected first-run setup attempt with invalid token", "remote_addr", r.RemoteAddr)
+		writeError(w, http.StatusForbidden, "kurulum anahtarı geçersiz; anahtarı ajan loglarında bulabilirsiniz")
 		return
 	}
 
@@ -656,6 +677,10 @@ func (s *Server) handleAuthSetup(w http.ResponseWriter, r *http.Request) {
 		SameSite: http.SameSiteLaxMode,
 		MaxAge:   int(7 * 24 * time.Hour.Seconds()),
 	})
+
+	s.mu.Lock()
+	s.setupToken = ""
+	s.mu.Unlock()
 
 	s.logger.Info("superuser setup completed successfully", "username", user.Username)
 
@@ -852,21 +877,6 @@ func (s *Server) handleUserActions(w http.ResponseWriter, r *http.Request) {
 // ────────────────────────────────────────────────────────────────────────────
 // Middleware
 // ────────────────────────────────────────────────────────────────────────────
-
-func (s *Server) corsMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")
-
-		if r.Method == http.MethodOptions {
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-
-		next.ServeHTTP(w, r)
-	})
-}
 
 func (s *Server) authMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

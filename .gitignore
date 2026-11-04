@@ -24,3 +24,5 @@ zeropulse
 
 # Agentic development spec files
 /specs
+# Failure seeds written by rapid during local test runs
+**/testdata/rapid/

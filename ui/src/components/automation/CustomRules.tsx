@@ -35,7 +35,7 @@ export const CustomRules: React.FC<CustomRulesProps> = ({ currentUser }) => {
   const [operator, setOperator] = useState<RuleOperator>('GT');
   const [threshold, setThreshold] = useState<string>('80');
   const [consecutivePeriods, setConsecutivePeriods] = useState<string>('3');
-  const [action, setAction] = useState<RuleAction>('RESTART');
+  const [action, setAction] = useState<RuleAction>('NOTIFY');
   const [cooldownSeconds, setCooldownSeconds] = useState<string>('60');
   const [containerFilter, setContainerFilter] = useState('');
 
@@ -71,7 +71,7 @@ export const CustomRules: React.FC<CustomRulesProps> = ({ currentUser }) => {
     setOperator('GT');
     setThreshold('80');
     setConsecutivePeriods('3');
-    setAction('RESTART');
+    setAction('NOTIFY');
     setCooldownSeconds('60');
     setContainerFilter('');
     setCreateModalOpen(true);
@@ -316,11 +316,7 @@ export const CustomRules: React.FC<CustomRulesProps> = ({ currentUser }) => {
                   <td>
                     <span
                       className={`status-pill sm ${
-                        r.action === 'RESTART'
-                          ? 'status-danger'
-                          : r.action === 'SCALE'
-                          ? 'status-warn'
-                          : 'status-ok'
+                        r.action === 'RESTART' ? 'status-danger' : 'status-ok'
                       }`}
                     >
                       {r.action}
@@ -468,7 +464,6 @@ export const CustomRules: React.FC<CustomRulesProps> = ({ currentUser }) => {
                     >
                       <option value="RESTART">{t('settings.action_restart')}</option>
                       <option value="NOTIFY">{t('settings.action_notify')}</option>
-                      <option value="SCALE">{t('settings.action_scale')}</option>
                     </select>
                   </div>
 

@@ -1,6 +1,6 @@
 [Unit]
 Description=Zeropulse - Edge Observability & Self-Healing Agent
-Documentation=https://github.com/zeropulse/zeropulse
+Documentation=https://github.com/yasin2dev/zeropulse
 After=network.target docker.service
 Wants=docker.service
 
@@ -10,7 +10,7 @@ User=root
 Group=root
 
 # Çalıştırılabilir dosya konumu
-ExecStart=/usr/local/bin/zeropulse --listen-addr 0.0.0.0:8080 --data-dir /var/lib/zeropulse
+ExecStart=/usr/local/bin/zeropulse --data-dir /var/lib/zeropulse
 
 # Ortam değişkenleri yapılandırma dosyası
 EnvironmentFile=-/etc/zeropulse/zeropulse.env

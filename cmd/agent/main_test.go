@@ -171,3 +171,71 @@ func TestStateWindowingEngineAndLogAnomalies(t *testing.T) {
 	}
 }
 
+
+func TestSafeDefaults(t *testing.T) {
+	if !defaultDryRunEnabled {
+		t.Error("remediation must be opt-in: dry-run should default to true")
+	}
+	if !isLoopbackAddr(defaultListenAddr) {
+		t.Errorf("default listen address %q must be loopback", defaultListenAddr)
+	}
+}
+
+func TestShouldExecuteRestart(t *testing.T) {
+	cases := []struct {
+		name   string
+		action string
+		dryRun bool
+		want   bool
+	}{
+		{"explicit rule in active mode", "RESTART", false, true},
+		{"explicit rule in dry-run", "RESTART", true, false},
+		{"built-in suggestion never restarts", "RESTART_SUGGESTED", false, false},
+		{"notify never restarts", "NOTIFY", false, false},
+		{"scale never restarts", "SCALE", false, false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := shouldExecuteRestart(tc.action, tc.dryRun); got != tc.want {
+				t.Errorf("shouldExecuteRestart(%q, %v) = %v, want %v", tc.action, tc.dryRun, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestIsLoopbackAddr(t *testing.T) {
+	cases := map[string]bool{
+		"127.0.0.1:8080": true,
+		"localhost:8080": true,
+		"[::1]:8080":     true,
+		"0.0.0.0:8080":   false,
+		"[::]:8080":      false,
+		":8080":          false,
+		"10.0.0.5:8080":  false,
+		"not-an-address": false,
+	}
+	for addr, want := range cases {
+		if got := isLoopbackAddr(addr); got != want {
+			t.Errorf("isLoopbackAddr(%q) = %v, want %v", addr, got, want)
+		}
+	}
+}
+
+func TestRestartTrackerAllowsOneRestartPerContainer(t *testing.T) {
+	tracker := newRestartTracker()
+
+	if !tracker.begin("a") {
+		t.Fatal("first restart should be allowed")
+	}
+	if tracker.begin("a") {
+		t.Error("overlapping restart should be refused")
+	}
+	if !tracker.begin("b") {
+		t.Error("a different container should not be blocked")
+	}
+
+	tracker.end("a")
+	if !tracker.begin("a") {
+		t.Error("restart should be allowed again after the previous one ends")
+	}
+}

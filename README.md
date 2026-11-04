@@ -37,14 +37,20 @@ Zeropulse, Docker konteynerleri ve Standalone (bare-metal / VM) Linux ve FreeBSD
 
 ## Derleme (Build)
 
-Projeyi derlemek için Go 1.22+ gereklidir:
+Go 1.27+ gereklidir. Yalnızca ajan ve API için:
 
 ```bash
-# Proje kök dizininde iken
 go build -o zeropulse ./cmd/agent
 ```
 
-Derleme sonucunda çalıştırılabilir `zeropulse` binary'si oluşturulur.
+Panel gömülü tek binary için Node.js 20+ da gerekir:
+
+```bash
+npm --prefix ui ci
+make build   # çıktı: bin/zeropulse
+```
+
+Docker ile çalıştırmak için `docker compose up --build` yeterlidir.
 
 ---
 
@@ -53,7 +59,8 @@ Derleme sonucunda çalıştırılabilir `zeropulse` binary'si oluşturulur.
 | Bayrak | Tip | Varsayılan | Açıklama |
 |---|---|---|---|
 | `--config` | `string` | `""` (boş) | Kuralları içeren YAML veya JSON dosyasının yolu. Belirtilmezse kural motoru devre dışı kalır, yalnızca metrik toplanır. |
-| `--dry-run` | `bool` | `false` | Dry-run modunu etkinleştirir. Anomali tespit edildiğinde aksiyon uygulanmaz; olay `"mode": "dry-run"` olarak loglanır. |
+| `--dry-run` | `bool` | `true` | Anomali tespit edildiğinde aksiyon uygulanmaz; olay `"mode": "dry-run"` olarak loglanır. `RESTART` kurallarını çalıştırmak için `--dry-run=false` verin. |
+| `--listen-addr` | `string` | `127.0.0.1:8080` | Panel ve API adresi. Varsayılan olarak yalnızca bu makineden erişilir. |
 | `-h`, `--help` | — | — | Kullanılabilir komut satırı seçeneklerini ve açıklamalarını listeler. |
 
 ---
@@ -73,7 +80,7 @@ Herhangi bir bayrak verilmediğinde ajan ortamı tespit eder ve her 5 saniyede b
 Kural dosyası verilerek çalıştırıldığında hem metrikler toplanır hem de her döngüde kurallar değerlendirilir. Eşik aşıldığında `"mode": "remediation"` etiketiyle `AnomalyEvent` üretilir.
 
 ```bash
-./zeropulse --config rules.yaml
+./zeropulse --config rules.yaml --dry-run=false
 ```
 
 ### 3. Simülasyon Modu (Dry-Run)
@@ -103,9 +110,9 @@ JSON formatında kural dosyası kullanımı:
 | `operator` | enum | Evet | `GT` (büyüktür `>`), `GTE` (büyük eşittir `>=`). |
 | `threshold` | float64 | Evet | Karşılaştırma eşik değeri ($\ge 0$). |
 | `consecutive_periods` | int | Evet | Anomali üretilmesi için gereken ardışık ihlal sayısı ($\ge 1$). |
-| `action` | enum | Evet | Tetiklenecek aksiyon: `NOTIFY`, `RESTART`, `SCALE`. |
+| `action` | enum | Evet | `NOTIFY`: olayı panele ve JSONL akışına yazar; dış bildirim henüz yok. `RESTART`: adı verilen konteyneri yeniden başlatır (yalnızca Docker). |
 | `cooldown_seconds` | int | Hayır | İki tetiklenme arasında geçmesi gereken asgari süre saniye cinsinden ($\ge 0$, varsayılan `0`). |
-| `container_filter` | string | Hayır | Hedef konteyner adı. Boş bırakılırsa tüm konteynerlere uygulanır. |
+| `container_filter` | string | `RESTART` için evet | Hedef konteyner adı. `NOTIFY` kurallarında boş bırakılırsa tüm konteynerlere uygulanır; `RESTART` kuralları boş bırakılamaz. |
 
 ### Örnek `rules.yaml`
 

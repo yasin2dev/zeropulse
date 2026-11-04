@@ -26,7 +26,7 @@ Bu doküman; Zeropulse Ajanı (`zeropulse-agent`), Edge Yönetim Paneli (`ui/`) 
 
 Lokal geliştirme ve testler için makinenizde aşağıdaki araçların kurulu olması tavsiye edilir:
 
-- **Go:** `v1.22` veya üzeri (`go version`)
+- **Go:** `v1.27` veya üzeri (`go version`)
 - **Node.js & npm:** Node `v18+` / `v20+` ve npm `v9+` (`node -v`, `npm -v`)
 - **Docker & Docker Compose:** Docker `v24+` (`docker compose version`)
 - **cURL:** Terminal üzerinden HTTP ve SSE akışlarını test etmek için
@@ -50,6 +50,8 @@ make build
 Tarayıcınızdan yönetim paneline erişin:
 👉 **`http://localhost:8080`**
 
+İlk kurulumda panel bir kurulum anahtarı ister. Ajan bu anahtarı başlangıçta `setup_token` alanıyla loglar; systemd kurulumunda `journalctl -u zeropulse | grep setup_token` ile bulabilirsiniz.
+
 ---
 
 ### Seçenek B: Linux systemd Servisi Olarak Entegrasyon (Önerilen Host Mimarisi)
@@ -57,10 +59,8 @@ Tarayıcınızdan yönetim paneline erişin:
 Ajanın Docker çöküşlerinden etkilenmeden işletim sistemi düzeyinde bir daemon olarak çalışması için:
 
 ```bash
-# Otomatik kurulum betiğini çalıştırın (root yetkisi gereklidir)
-sudo ./systemd/install.sh
-# veya
-sudo make install
+# sudo olmadan çalıştırın: derleme sizin kullanıcınızla yapılır, parola yalnızca kurulumda sorulur
+make install
 ```
 
 Bu betik:
@@ -71,9 +71,8 @@ Bu betik:
 **Güncelleme (Mevcut Kurulumu Güncelleme):**
 Kodda veya UI'da değişiklik yaptıktan sonra çalışan servisi tek komutla güncellemek için:
 ```bash
-sudo ./systemd/update.sh
-# veya
-sudo make update
+# sudo olmadan çalıştırın
+make update
 ```
 *Bu komut projeyi yeniden derler, eski binary'yi `.old` olarak yedekler, mevcut ayarlarınızı (`/etc/zeropulse/zeropulse.env`) korur ve çalışan servisi kesintisizce yeniden başlatır.*
 
@@ -162,6 +161,10 @@ Konteyner ortamında çalıştırmak isteyenler için:
 ```bash
 docker compose up --build
 ```
+Panel `http://localhost:8080` adresinde açılır. Kurulum anahtarı için: `docker compose logs zeropulse | grep setup_token`
+
+Compose dosyası Docker soketini bağlar; bu, host üzerindeki Docker'a root eşdeğeri yetki verir.
+
 Durdurmak için: `docker compose down`
 
 ---
@@ -333,8 +336,8 @@ Ajan bayrakları (CLI flags) veya eşdeğer ortam değişkenleri ile yapılandı
 
 | CLI Bayrağı | Çevre Değişkeni | Varsayılan | Açıklama |
 |---|---|---|---|
-| `--listen-addr` | `ZEROPULSE_LISTEN_ADDR` | `0.0.0.0:9180` | Dahili HTTP API ve SSE sunucusunun dinleyeceği adres |
-| `--dry-run` | `ZEROPULSE_DRY_RUN` | `false` | `true` ise self-healing aksiyonları sadece simüle edilir |
+| `--listen-addr` | `ZEROPULSE_LISTEN_ADDR` | `127.0.0.1:8080` | Dahili HTTP API ve SSE sunucusunun dinleyeceği adres |
+| `--dry-run` | `ZEROPULSE_DRY_RUN` | `true` | `RESTART` kuralları yalnızca simüle edilir; çalıştırmak için `--dry-run=false` verin |
 | `--cpu-threshold` | `ZEROPULSE_CPU_THRESHOLD` | `80.0` | CPU doygunluğu eşik yüzdesi |
 | `--mem-threshold` | `ZEROPULSE_MEM_THRESHOLD` | `85.0` | Kritik bellek eşik yüzdesi |
 | `--cooldown` | `ZEROPULSE_COOLDOWN` | `60s` | Konteyner başına flapping önleme bekleme süresi |
@@ -362,7 +365,7 @@ Veya geliştirme testlerinde soket izinlerini geçici olarak kontrol edin (`ls -
 lsof -i :8080 || lsof -i :9180
 
 # Farklı bir port ile ajanı başlatın
-go run ./cmd/agent --listen-addr 0.0.0.0:9190
+go run ./cmd/agent --listen-addr 127.0.0.1:9190
 ```
 
 ### Sorun: Vite UI açılıyor fakat metrikler akmıyor (RECONNECTING / OFFLINE)

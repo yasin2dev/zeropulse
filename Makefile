@@ -14,25 +14,27 @@ ui-watch:
 	cd ui && npx vite build --watch
 
 ui:
-	cd ui && npm run build
+	@./scripts/check-build-env.sh npm
+	cd ui && { [ -d node_modules ] || npm ci; } && npm run build
 
 agent:
-	go build -ldflags="-s -w" -o bin/zeropulse ./cmd/agent
+	@./scripts/check-build-env.sh go
+	go build -tags embedui -ldflags="-s -w" -o bin/zeropulse ./cmd/agent
 
 build: ui agent
 
-test:
-	go test -v ./...
-	cd ui && npm run build
+test: ui
+	go test -v -tags embedui ./...
 
+# Build as the current user; only installing the result needs root.
 install: build
-	./systemd/install.sh
+	sudo ./systemd/install.sh
 
 update: build
-	./systemd/update.sh
+	sudo ./systemd/install.sh
 
 uninstall:
-	./systemd/uninstall.sh
+	sudo ./systemd/uninstall.sh
 
 clean:
 	rm -rf bin/

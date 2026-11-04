@@ -7,10 +7,12 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"net"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"strconv"
+	"sync"
 	"syscall"
 	"time"
 
@@ -23,6 +25,59 @@ import (
 )
 
 const collectInterval = 5 * time.Second
+
+const (
+	// The dashboard can restart containers, so it stays private until exposed on purpose.
+	defaultListenAddr = "127.0.0.1:8080"
+	// Remediation is opt-in: a fresh install only observes.
+	defaultDryRunEnabled = true
+)
+
+// shouldExecuteRestart reports whether an anomaly may restart a container.
+// Only explicit RESTART rules qualify; RESTART_SUGGESTED is advice from the built-in checks.
+func shouldExecuteRestart(action string, dryRun bool) bool {
+	return !dryRun && action == string(config.ActionRestart)
+}
+
+// restartTracker prevents overlapping restarts of the same container.
+type restartTracker struct {
+	mu     sync.Mutex
+	active map[string]struct{}
+}
+
+func newRestartTracker() *restartTracker {
+	return &restartTracker{active: make(map[string]struct{})}
+}
+
+// begin claims a container and reports false if a restart is already running.
+func (t *restartTracker) begin(containerID string) bool {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	if _, running := t.active[containerID]; running {
+		return false
+	}
+	t.active[containerID] = struct{}{}
+	return true
+}
+
+func (t *restartTracker) end(containerID string) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	delete(t.active, containerID)
+}
+
+// isLoopbackAddr reports whether a listen address accepts only local connections.
+func isLoopbackAddr(addr string) bool {
+	host, _, err := net.SplitHostPort(addr)
+	if err != nil {
+		return false
+	}
+	if host == "localhost" {
+		return true
+	}
+	ip := net.ParseIP(host)
+	return ip != nil && ip.IsLoopback()
+}
 
 func main() {
 	var (
@@ -47,8 +102,8 @@ func main() {
 	defaultCPU := envFloatOrDefault("ZEROPULSE_CPU_THRESHOLD", engine.DefaultCPUThreshold)
 	defaultMem := envFloatOrDefault("ZEROPULSE_MEM_THRESHOLD", engine.DefaultMemThreshold)
 	defaultCooldown := envDurationOrDefault("ZEROPULSE_COOLDOWN", engine.DefaultCooldown)
-	defaultAddr := envStringOrDefault("ZEROPULSE_LISTEN_ADDR", "0.0.0.0:8080")
-	defaultDryRun := envBoolOrDefault("ZEROPULSE_DRY_RUN", false)
+	defaultAddr := envStringOrDefault("ZEROPULSE_LISTEN_ADDR", defaultListenAddr)
+	defaultDryRun := envBoolOrDefault("ZEROPULSE_DRY_RUN", defaultDryRunEnabled)
 	defaultAuth := envBoolOrDefault("ZEROPULSE_AUTH_ENABLED", false)
 	defaultUser := envStringOrDefault("ZEROPULSE_AUTH_USER", "admin")
 	defaultPass := os.Getenv("ZEROPULSE_AUTH_PASS")
@@ -58,7 +113,7 @@ func main() {
 	defaultUIProxy := os.Getenv("ZEROPULSE_UI_PROXY")
 
 	flag.StringVar(&configPath, "config", "", "Path to YAML or JSON rule configuration file")
-	flag.BoolVar(&dryRun, "dry-run", defaultDryRun, "Run in dry-run mode (log actions without executing remediation)")
+	flag.BoolVar(&dryRun, "dry-run", defaultDryRun, "Log actions without executing remediation; use --dry-run=false to allow RESTART rules")
 	flag.Float64Var(&cpuThreshold, "cpu-threshold", defaultCPU, "CPU saturation threshold percentage (e.g. 80.0, or 0.5 for testing)")
 	flag.Float64Var(&memThreshold, "mem-threshold", defaultMem, "Memory critical threshold percentage (default 85.0)")
 	flag.DurationVar(&cooldown, "cooldown", defaultCooldown, "Per-container anomaly cooldown duration (default 60s)")
@@ -151,6 +206,10 @@ func main() {
 	defer store.Close()
 	logger.Info("persistent bbolt database ready", "path", dbPath)
 
+	if !isLoopbackAddr(listenAddr) {
+		logger.Warn("dashboard is reachable from the network; put it behind a TLS reverse proxy", "addr", listenAddr)
+	}
+
 	loader := config.ConfigLoader{}
 	serverCfg := server.ServerConfig{
 		Addr:        listenAddr,
@@ -169,6 +228,8 @@ func main() {
 		},
 	}
 	apiServer := server.NewServer(serverCfg, env, logger)
+
+	restarts := newRestartTracker()
 
 	// Forward custom rule anomalies to embedded dashboard audit log and self-healing executor
 	customRuleEngine.SetAnomalyHandler(func(evt ruleengine.AnomalyEvent) {
@@ -194,18 +255,30 @@ func main() {
 			Message:          fmt.Sprintf("[%s] Container %s breached rule %q (%s: %.1f, threshold: %.1f)", evt.RuleName, evt.ContainerName, evt.RuleName, evt.MetricType, evt.CurrentValue, evt.Threshold),
 		}
 
-		if !dryRunActive && (evt.Action == "RESTART" || evt.Action == engine.ActionRestartSuggested) && env == collector.EnvDocker {
-			logger.Warn("executing self-healing restart remediation from rule engine", "container_id", evt.ContainerID, "container_name", evt.ContainerName, "rule", evt.RuleName)
-			restartErr := collector.RestartContainer(context.Background(), evt.ContainerID)
-			if restartErr != nil {
-				entry.Status = "REMEDIATION_FAILED"
-				entry.Message += fmt.Sprintf(" | Remediation restart failed: %v", restartErr)
-				logger.Error("self-healing remediation failed", "container_id", evt.ContainerID, "error", restartErr)
-			} else {
-				entry.Status = "ACTION_EXECUTED"
-				entry.Message += " | Container successfully restarted by custom rule engine"
-				logger.Info("self-healing remediation succeeded", "container_id", evt.ContainerID, "rule", evt.RuleName)
+		if shouldExecuteRestart(evt.Action, dryRunActive) && env == collector.EnvDocker {
+			if !restarts.begin(evt.ContainerID) {
+				logger.Warn("skipping restart; one is already in progress", "container_id", evt.ContainerID, "rule", evt.RuleName)
+				return
 			}
+
+			// A restart can outlast several collection ticks, so it must not hold up metrics.
+			go func() {
+				defer restarts.end(evt.ContainerID)
+
+				logger.Warn("executing self-healing restart remediation from rule engine", "container_id", evt.ContainerID, "container_name", evt.ContainerName, "rule", evt.RuleName)
+				restartErr := collector.RestartContainer(context.Background(), evt.ContainerID)
+				if restartErr != nil {
+					entry.Status = "REMEDIATION_FAILED"
+					entry.Message += fmt.Sprintf(" | Remediation restart failed: %v", restartErr)
+					logger.Error("self-healing remediation failed", "container_id", evt.ContainerID, "error", restartErr)
+				} else {
+					entry.Status = "ACTION_EXECUTED"
+					entry.Message += " | Container successfully restarted by custom rule engine"
+					logger.Info("self-healing remediation succeeded", "container_id", evt.ContainerID, "rule", evt.RuleName)
+				}
+				apiServer.PushAnomaly(entry)
+			}()
+			return
 		}
 
 		apiServer.PushAnomaly(entry)
@@ -475,20 +548,6 @@ func collectAndPrintDocker(ctx context.Context, logger *slog.Logger, enc *json.E
 				DryRun:           dryRun,
 				Status:           status,
 				Message:          fmt.Sprintf("[%s] Container %s breached threshold (CPU: %.1f%%, Mem: %.1f%%)", evt.Status, evt.ContainerName, evt.CPUPercent, evt.MemPercent),
-			}
-
-			if !dryRun && (evt.Action == engine.ActionRestartSuggested || evt.Action == "RESTART") {
-				logger.Warn("executing self-healing restart remediation", "container_id", evt.ContainerID, "container_name", evt.ContainerName)
-				restartErr := collector.RestartContainer(ctx, evt.ContainerID)
-				if restartErr != nil {
-					entry.Status = "REMEDIATION_FAILED"
-					entry.Message += fmt.Sprintf(" | Remediation restart failed: %v", restartErr)
-					logger.Error("self-healing remediation failed", "container_id", evt.ContainerID, "error", restartErr)
-				} else {
-					entry.Status = "ACTION_EXECUTED"
-					entry.Message += " | Container successfully restarted by self-healing rule engine"
-					logger.Info("self-healing remediation succeeded", "container_id", evt.ContainerID)
-				}
 			}
 
 			srv.PushAnomaly(entry)

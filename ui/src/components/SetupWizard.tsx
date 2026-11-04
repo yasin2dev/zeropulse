@@ -25,6 +25,7 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({
   onSetupSuccess,
 }) => {
   const { t, i18n } = useTranslation();
+  const [setupToken, setSetupToken] = useState('');
   const [username, setUsername] = useState('admin');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -58,6 +59,7 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({
         body: JSON.stringify({
           username: username.trim(),
           password,
+          setup_token: setupToken.trim(),
         }),
       });
 
@@ -131,6 +133,25 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({
 
         <form onSubmit={handleSubmit} className="auth-form">
           <div className="form-group">
+            <label className="form-label" htmlFor="setup-token">
+              <span>{t('auth.setup_token')}</span>
+              <FontAwesomeIcon icon={faLock} style={{ opacity: 0.5 }} />
+            </label>
+            <input
+              id="setup-token"
+              type="text"
+              className="form-input"
+              value={setupToken}
+              onChange={(e) => setSetupToken(e.target.value)}
+              required
+              autoFocus
+              autoComplete="off"
+              spellCheck={false}
+            />
+            <span className="form-helper">{t('auth.setup_token_helper')}</span>
+          </div>
+
+          <div className="form-group">
             <label className="form-label" htmlFor="setup-username">
               <span>{t('auth.admin_username')}</span>
               <FontAwesomeIcon icon={faUser} style={{ opacity: 0.5 }} />
@@ -143,7 +164,6 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({
               onChange={(e) => setUsername(e.target.value)}
               placeholder="admin"
               required
-              autoFocus
               autoComplete="username"
             />
             <span className="form-helper">{t('auth.admin_username_helper')}</span>

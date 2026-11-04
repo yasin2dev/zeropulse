@@ -30,7 +30,6 @@ type Action string
 const (
 	ActionRestart Action = "RESTART"
 	ActionNotify  Action = "NOTIFY"
-	ActionScale   Action = "SCALE"
 )
 
 // Rule defines a monitoring rule that the rule engine evaluates against
@@ -65,7 +64,6 @@ var validOperators = map[Operator]struct{}{
 var validActions = map[Action]struct{}{
 	ActionRestart: {},
 	ActionNotify:  {},
-	ActionScale:   {},
 }
 
 // Validate checks all fields of the Rule for correctness.
@@ -84,7 +82,11 @@ func (r Rule) Validate() error {
 	}
 
 	if _, ok := validActions[r.Action]; !ok {
-		return fmt.Errorf("rule %q: unknown action %q; must be one of RESTART, NOTIFY, SCALE", r.Name, r.Action)
+		return fmt.Errorf("rule %q: unknown action %q; must be one of RESTART, NOTIFY", r.Name, r.Action)
+	}
+
+	if r.Action == ActionRestart && strings.TrimSpace(r.ContainerFilter) == "" {
+		return fmt.Errorf("rule %q: RESTART requires container_filter so only a named container is restarted", r.Name)
 	}
 
 	if r.Threshold < 0 {

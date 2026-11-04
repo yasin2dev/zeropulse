@@ -1,0 +1,16 @@
+services:
+  zeropulse:
+    build: .
+    restart: unless-stopped
+    environment:
+      ZEROPULSE_LISTEN_ADDR: 0.0.0.0:8080 # inside the container; the port mapping below keeps it private
+      ZEROPULSE_DRY_RUN: "true"
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      # Grants root-equivalent control of the host's Docker daemon.
+      - /var/run/docker.sock:/var/run/docker.sock
+      - zeropulse-data:/data
+
+volumes:
+  zeropulse-data:
