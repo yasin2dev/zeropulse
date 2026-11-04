@@ -39,6 +39,8 @@ export const en = {
     login_required_fields: 'Please enter your username and password.',
     login_failed: 'Sign in failed.',
     invalid_credentials: 'Invalid username or password.',
+    setup_token: 'Setup Token',
+    setup_token_helper: 'Printed in the agent logs as setup_token. On systemd: journalctl -u zeropulse | grep setup_token',
     setup_badge: 'First Run · Zero-Trust Setup',
     setup_title: 'Create Superuser Account',
     setup_subtitle: 'Welcome to the Zeropulse Edge Gateway appliance console. Define your primary superuser account to secure your system.',

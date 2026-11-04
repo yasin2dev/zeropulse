@@ -3,10 +3,12 @@ package server
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"zeropulse-agent/internal/collector"
@@ -49,7 +51,22 @@ func TestAuthAndUserManagementFlow(t *testing.T) {
 	}
 
 	// 2. Initial Setup: Create Superuser
-	setupBody := []byte(`{"username":"rootadmin","password":"password123"}`)
+	if srv.setupToken == "" {
+		t.Fatal("expected a setup token on an uninitialized store")
+	}
+	for _, body := range []string{
+		`{"username":"attacker","password":"password123"}`,
+		`{"username":"attacker","password":"password123","setup_token":"wrong"}`,
+	} {
+		req = httptest.NewRequest(http.MethodPost, "/api/v1/auth/setup", strings.NewReader(body))
+		rec = httptest.NewRecorder()
+		srv.httpServer.Handler.ServeHTTP(rec, req)
+		if rec.Code != http.StatusForbidden {
+			t.Fatalf("expected 403 for setup without a valid token, got %d: %s", rec.Code, rec.Body.String())
+		}
+	}
+
+	setupBody := []byte(fmt.Sprintf(`{"username":"rootadmin","password":"password123","setup_token":%q}`, srv.setupToken))
 	req = httptest.NewRequest(http.MethodPost, "/api/v1/auth/setup", bytes.NewReader(setupBody))
 	rec = httptest.NewRecorder()
 	srv.httpServer.Handler.ServeHTTP(rec, req)

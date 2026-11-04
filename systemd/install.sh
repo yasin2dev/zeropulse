@@ -101,6 +101,7 @@ if systemctl is-active --quiet "$SERVICE_NAME"; then
   echo -e "${GREEN}====================================================${NC}"
   echo -e "Durum:      ${GREEN}Çalışıyor (Active)${NC}"
   echo -e "Web Paneli: http://localhost:8080"
+  echo -e "Kurulum anahtarı: journalctl -u zeropulse | grep setup_token"
   echo -e "Log Takibi: journalctl -u $SERVICE_NAME -f"
 else
   echo -e "${RED}UYARI: Servis başlatılamadı. journalctl -u $SERVICE_NAME -n 50 ile logları inceleyin.${NC}"

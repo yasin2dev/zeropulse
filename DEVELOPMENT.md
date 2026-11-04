@@ -50,6 +50,8 @@ make build
 Tarayıcınızdan yönetim paneline erişin:
 👉 **`http://localhost:8080`**
 
+İlk kurulumda panel bir kurulum anahtarı ister. Ajan bu anahtarı başlangıçta `setup_token` alanıyla loglar; systemd kurulumunda `journalctl -u zeropulse | grep setup_token` ile bulabilirsiniz.
+
 ---
 
 ### Seçenek B: Linux systemd Servisi Olarak Entegrasyon (Önerilen Host Mimarisi)

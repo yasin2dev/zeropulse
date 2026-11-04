@@ -179,7 +179,7 @@ func main() {
 	logger.Info("persistent bbolt database ready", "path", dbPath)
 
 	if !isLoopbackAddr(listenAddr) {
-		logger.Warn("dashboard is reachable from the network; the first visitor can create the admin account until setup is complete", "addr", listenAddr)
+		logger.Warn("dashboard is reachable from the network; put it behind a TLS reverse proxy", "addr", listenAddr)
 	}
 
 	loader := config.ConfigLoader{}

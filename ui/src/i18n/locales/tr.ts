@@ -39,6 +39,8 @@ export const tr = {
     login_required_fields: 'Lütfen kullanıcı adı ve şifrenizi girin.',
     login_failed: 'Giriş yapılamadı.',
     invalid_credentials: 'Kullanıcı adı veya şifre hatalı.',
+    setup_token: 'Kurulum Anahtarı',
+    setup_token_helper: 'Ajan loglarında setup_token olarak yazılır. systemd için: journalctl -u zeropulse | grep setup_token',
     setup_badge: 'İlk Kurulum · Zero-Trust Setup',
     setup_title: 'Süper Yönetici Hesabı Oluştur',
     setup_subtitle: 'Zeropulse Edge Gateway donanım paneline hoş geldiniz. Sisteminizi güvene almak için ilk root yönetici (Superuser) hesabınızı tanımlayın.',
