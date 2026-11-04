@@ -211,15 +211,19 @@ func main() {
 		apiServer.PushAnomaly(entry)
 	})
 
-	go func() {
-		if err := apiServer.Start(); err != nil {
-			logger.Error("embedded api server error", "error", err)
-		}
-	}()
-
 	// Graceful shutdown on SIGINT / SIGTERM.
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
+
+	// A dead API server must stop the agent: otherwise the process keeps running
+	// with no dashboard and the service manager still reports it as healthy.
+	serverErr := make(chan error, 1)
+	go func() {
+		if err := apiServer.Start(); err != nil {
+			serverErr <- err
+			stop()
+		}
+	}()
 
 	encoder := json.NewEncoder(os.Stdout)
 	encoder.SetIndent("", "  ")
@@ -235,6 +239,13 @@ func main() {
 	defer cancel()
 	if err := apiServer.Stop(shutdownCtx); err != nil {
 		logger.Warn("api server graceful shutdown timed out", "error", err)
+	}
+
+	select {
+	case err := <-serverErr:
+		logger.Error("embedded api server error", "error", err)
+		os.Exit(1)
+	default:
 	}
 
 	logger.Info("agent stopped")
